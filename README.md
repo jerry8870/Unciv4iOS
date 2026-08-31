@@ -1,24 +1,25 @@
-# Unciv - Civ V remake for Android & Desktop
+# Unciv4iOS - Civ V remake for iOS
 
 ![](/extraImages/GithubPreviewImage.jpg)
 
-[![Google Play](https://img.shields.io/static/v1?label=Google&message=Play&logo=google-play)](https://play.google.com/store/apps/details?id=com.unciv.app)
-[![F-Droid](https://img.shields.io/f-droid/v/com.unciv.app?logo=f-droid)](https://f-droid.org/en/packages/com.unciv.app/)
-[![itch.io](https://img.shields.io/static/v1?label=itch.io&message=Unciv&color=607D8B&logo=itch.io)](https://yairm210.itch.io/unciv)
-[![Flathub](https://img.shields.io/flathub/v/io.github.yairm210.unciv?logo=flathub)](https://flathub.org/apps/details/io.github.yairm210.unciv)
-[![AUR](https://img.shields.io/aur/version/unciv-bin?logo=arch-linux)](https://aur.archlinux.org/packages/unciv-bin)
-[![pi-apps](https://img.shields.io/badge/dynamic/json?color=c51a4a&label=Pi-Apps&logo=raspberry-pi&query=%24.Unciv.Version&url=https%3A%2F%2Fraw.githubusercontent.com%2FBotspot%2Fpi-apps-analytics%2Fmain%2Fpackage_data_v2.json)](https://github.com/Botspot/pi-apps)
-![Brew](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fformulae.brew.sh%2Fapi%2Fformula%2Funciv.json&query=%24.versions.stable&logo=homebrew&label=Brew)
-[![Chocolatey](https://img.shields.io/chocolatey/v/unciv?logo=chocolatey)](https://community.chocolatey.org/packages/unciv)
-[![scoop-games](https://img.shields.io/scoop/v/unciv?bucket=games)](https://github.com/Calinou/scoop-games)
- 
-[![Build status](https://github.com/yairm210/Unciv/actions/workflows/buildAndTest.yml/badge.svg)](https://github.com/yairm210/Unciv/actions/workflows/buildAndTest.yml)
-[![Discord](https://img.shields.io/discord/586194543280390151?color=%237289DA&logo=discord&logoColor=%23FFFFFF)](https://discord.gg/bjrB4Xw)
+> This is an **iOS port fork** of [yairm210/Unciv](https://github.com/yairm210/Unciv).
+> Upstream Unciv supports Android, Desktop and Web, but not iOS.
+> This repository exists to make Unciv run natively on iPhone and iPad.
+> Game content and the modding ecosystem stay in sync with upstream, and the license is the same MPL 2.0.
 
+![Platform](https://img.shields.io/badge/platform-iOS-blue?logo=apple)
+![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
+![LibGDX](https://img.shields.io/badge/LibGDX-e44d3c?logo=libgdx&logoColor=white)
+![License](https://img.shields.io/badge/license-MPL--2.0-green)
+[![Forked from Unciv](https://img.shields.io/badge/forked%20from-yairm210%2FUnciv-blueviolet)](https://github.com/yairm210/Unciv)
+[![Discord](https://img.shields.io/discord/586194543280390151?color=%237289DA&logo=discord&logoColor=%23FFFFFF)](https://discord.gg/bjrB4Xw)
 
 ## What is this?
 
-An open source, moddability-focused Android and Desktop remake of Civ V, made with [LibGDX](https://github.com/libgdx/libgdx).
+An open source, moddability-focused **iOS** remake of Civ V, made with [LibGDX](https://github.com/libgdx/libgdx).
+
+This is a fork of [Unciv](https://github.com/yairm210/Unciv). The upstream project does not support iOS,
+so everything iOS-specific is developed here.
 
 ## Is this any good?
 
@@ -26,24 +27,45 @@ Depends what you're looking for. If you're in the market for high-res graphics, 
 
 If you want a small, fast, moddable, FOSS, in-depth 4X that can still run on a potato, you've come to the right place :)
 
-## How do I install?
+## How do I install on iOS?
 
-- **Android** - [Google Play](https://play.google.com/store/apps/details?id=com.unciv.app) or [F-droid](https://f-droid.org/en/packages/com.unciv.app/)
-- **Linux** - [itch.io](https://yairm210.itch.io/unciv), Flatpak via [Flathub](https://flathub.org/apps/details/io.github.yairm210.unciv), or [AUR](https://aur.archlinux.org/packages/unciv-bin)
-- **Windows** - [Grab the MSI](https://github.com/yairm210/Unciv/releases/latest/download/Unciv.msi), or get from [itch.io](https://yairm210.itch.io/unciv), [Chocolatey](https://community.chocolatey.org/packages/unciv), or [Scoop](https://github.com/Calinou/scoop-games)
-- **Raspberry Pi** - [Pi-apps](https://github.com/Botspot/pi-apps)
-- **MacOS** - Via [Brew](https://brew.sh/) (`brew update && brew install unciv`) or install [with this guide](https://yairm210.github.io/Unciv/Other/Installing-on-macOS/) 
-- Jars, APKs and Windows/Linux builds also available in [Releases](https://github.com/yairm210/Unciv/releases) (run jar with `java -jar Unciv.jar`) - *not recommended* since we update frequently and you will quickly become out-of-date
-- [Build from scratch](https://yairm210.github.io/Unciv/Developers/Building-Locally/#without-android-studio) if that's your thing
+**Work in progress** - installation instructions are still being written.
+
+The `ios/` module has not landed yet. `settings.gradle.kts` currently includes only
+`desktop`, `core`, `tests` and `server`, plus `android` when an Android SDK is detected -
+`android/assets` is the shared asset directory used by every platform, so it stays regardless.
+
+Planned distribution channels:
+
+- **TestFlight** - beta distribution (requires an Apple Developer account)
+- **AltStore / SideStore** - sideloading with a free Apple ID, re-signing needed every 7 days
+- **Xcode build** - clone this repository and build straight to a connected device
+
+None of these are available yet. Watch this repository for updates.
 
 ## What's the roadmap?
 
-In this order:
+The iOS port is built in two phases:
 
-* Polish!
-    * UI+UX improvements ([suggestions welcome!](https://github.com/yairm210/Unciv/issues/new?assignees=&labels=feature&template=feature_request.md&title=Feature+request%3A+))
-    * Better automation, AI etc. in-game
-* G&K mechanics - see [#4697](https://www.github.com/yairm210/Unciv/issues/4697)
+**Phase 1 - Single player (current focus)**
+
+Get a fully playable single player game running on iOS:
+
+* Touch-first UI+UX improvements ([suggestions welcome!](https://github.com/jerry8870/Unciv4iOS/issues/new?assignees=&labels=feature&template=feature_request.md&title=Feature+request%3A+))
+* Save games, mods and assets working correctly under the iOS sandbox
+* Performance and stability on iPhone and iPad
+
+**Phase 2 - Multiplayer and online features**
+
+Once single player is solid, the online parts come next:
+
+* Multiplayer, which is based on save file up/download - see [how it works upstream](https://yairm210.github.io/Unciv/Other/Multiplayer/)
+* Dropbox sync, the default multiplayer backend upstream
+* Connecting to a self-hosted Unciv server
+
+After that, we follow upstream:
+
+* G&K mechanics - see [upstream #4697](https://www.github.com/yairm210/Unciv/issues/4697)
 * BNW mechanics - trade routes, world congress, etc.
 
 ## Contributing
@@ -61,9 +83,11 @@ If not, you can help by spreading the word - vote for Unciv where you can, menti
 
 ## FAQ
 
-### How about iOS?
+### Why a separate iOS fork?
 
-I'm not planning on it. It means paying money to Apple, yet another release path, and since I don't have an iOS device it means I can't test it properly.
+Upstream Unciv is not planning an iOS release - it means paying money to Apple, yet another release path,
+and without an iOS device it cannot be tested properly. This fork exists to do exactly that,
+so all iOS-specific work lives here instead.
 
 ### Steam release?
 
@@ -112,26 +136,12 @@ It is probably illegal (no solid sources on this):
 
 Interestingly, [Civilization is a registered trademark](https://tsdr.uspto.gov/#caseNumber=74166752&caseType=SERIAL_NO&searchType=statusSearch), but it looks like it's only *that particular logo* which is trademarked, so technically you could make another game called "Civilization" and it'll stick. In any case we're not going there :) 
 
-## Run with Docker [![Docker](https://github.com/yairm210/Unciv/actions/workflows/dockerPublish.yml/badge.svg)](https://github.com/yairm210/Unciv/actions/workflows/dockerPublish.yml)
-
-If you have docker compose installed:
-
- ```$ docker compose build && docker compose up```
-
-and then goto http://localhost:6901/vnc.html?password=headless
-
-If just docker:
-
-```$ docker build . -t unciv && docker run -d -p 6901:6901 -p 5901:5901 unciv  ```
-
-Or just use our already built one:
-
-```$ docker run -d -p 6901:6901 -p 5901:5901 ghcr.io/yairm210/unciv ```
-
-and then goto http://localhost:6901/vnc.html?password=headless
-
 ## Licensing and credits
 
 This game is available under the MPL 2.0 (see [LICENSE](LICENSE]). The media
 files are authored by many people, available under a mix of CC BY-SA 4.0,
 CC BY 3.0/4.0, CC0, Public Domain (see [docs/Credits.md](docs/Credits.md)).
+
+This repository is a **modified version** of [yairm210/Unciv](https://github.com/yairm210/Unciv),
+Copyright (c) Yair Morgenstern, licensed under the same MPL 2.0.
+The changes in this fork are limited to adding iOS support, and are documented in the commit history.
