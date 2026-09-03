@@ -38,10 +38,13 @@ The quickest way to try it: **[join the public TestFlight beta](https://testflig
 This is an early, unstable build of the iOS port. Expect bugs and missing features -
 see [What's the roadmap?](#whats-the-roadmap) for what works today.
 
-### Other channels
+### App Store
 
-- **AltStore / SideStore** - sideload with a free Apple ID, re-signing needed every 7 days (not available yet)
-- **Build from source** - not available yet: the `ios/` module will be published here alongside the source release
+Not available yet - the App Store release is planned once the port is stable.
+
+### Build from source
+
+Not available yet: the `ios/` module will be published here alongside the source release.
 
 ## What's the roadmap?
 
