@@ -6,7 +6,9 @@
 > Upstream Unciv supports Android, Desktop and Web, but not iOS.
 > This repository exists to make Unciv run natively on iPhone and iPad.
 > Game content and the modding ecosystem stay in sync with upstream, and the license is the same MPL 2.0.
+> The iOS port source is not published yet - it will be released here under MPL 2.0 once the port is stable.
 
+[![TestFlight](https://img.shields.io/badge/TestFlight-Join%20Beta-blue?logo=apple)](https://testflight.apple.com/join/XSgMMQjt)
 ![Platform](https://img.shields.io/badge/platform-iOS-blue?logo=apple)
 ![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white)
 ![LibGDX](https://img.shields.io/badge/LibGDX-e44d3c?logo=libgdx&logoColor=white)
@@ -29,19 +31,17 @@ If you want a small, fast, moddable, FOSS, in-depth 4X that can still run on a p
 
 ## How do I install on iOS?
 
-**Work in progress** - installation instructions are still being written.
+### Join the TestFlight beta
 
-The `ios/` module has not landed yet. `settings.gradle.kts` currently includes only
-`desktop`, `core`, `tests` and `server`, plus `android` when an Android SDK is detected -
-`android/assets` is the shared asset directory used by every platform, so it stays regardless.
+The quickest way to try it: **[join the public TestFlight beta](https://testflight.apple.com/join/XSgMMQjt)**
 
-Planned distribution channels:
+This is an early, unstable build of the iOS port. Expect bugs and missing features -
+see [What's the roadmap?](#whats-the-roadmap) for what works today.
 
-- **TestFlight** - beta distribution (requires an Apple Developer account)
-- **AltStore / SideStore** - sideloading with a free Apple ID, re-signing needed every 7 days
-- **Xcode build** - clone this repository and build straight to a connected device
+### Other channels
 
-None of these are available yet. Watch this repository for updates.
+- **AltStore / SideStore** - sideload with a free Apple ID, re-signing needed every 7 days (not available yet)
+- **Build from source** - not available yet: the `ios/` module will be published here alongside the source release
 
 ## What's the roadmap?
 
