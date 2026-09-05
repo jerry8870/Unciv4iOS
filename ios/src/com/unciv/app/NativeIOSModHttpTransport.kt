@@ -91,7 +91,7 @@ internal class NativeIOSModHttpTransport : IOSModHttpTransport {
             }
         }
 
-        override fun didCompleteWithError(session: NSURLSession, task: NSURLSessionTask, error: NSError?) {
+        override fun didComplete(session: NSURLSession, task: NSURLSessionTask, error: NSError?) {
             try {
                 listener.complete(error?.let { IOException(it.localizedDescription) })
             } finally {
