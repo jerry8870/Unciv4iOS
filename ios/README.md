@@ -119,6 +119,9 @@ Server passwords use the existing settings storage
 
 Mod management is enabled through the existing GitHub catalog, URL download,
 installation, update, and missing-Mod download flows.
+Its Ktor client uses an NSURLSession-backed streaming engine on iOS because
+the CIO engine requires JDK APIs unavailable in RoboVM. Ktor continues to
+handle redirects and progress, and the existing Mod installer is unchanged.
 
 Chat, API v2, Dropbox storage, background polling, push notifications, deep
 links, HTTP/LAN servers, and default music download stay

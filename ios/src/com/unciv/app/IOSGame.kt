@@ -46,6 +46,8 @@ class IOSGame @JvmOverloads constructor(
     override fun createMultiplayerV1Transport(): MultiplayerV1Transport =
         IOSMultiplayerV1Transport()
 
+    override fun createModHttpClientEngine() = IOSModHttpClientEngine()
+
     override fun beginMultiplayerUploadBackgroundTask(onExpired: () -> Unit): MultiplayerBackgroundTask =
         IOSMultiplayerBackgroundTask(onExpired)
 

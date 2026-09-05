@@ -2,6 +2,8 @@ package com.unciv.utils
 
 import com.unciv.logic.multiplayer.storage.MultiplayerV1Transport
 import com.unciv.logic.multiplayer.storage.SimpleHttp
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.cio.CIO
 import yairm210.purity.annotations.Readonly
 import java.util.Locale
 
@@ -84,6 +86,9 @@ interface PlatformSpecific {
 
     /** Creates the platform network transport used by API v1 multiplayer. */
     fun createMultiplayerV1Transport(): MultiplayerV1Transport = SimpleHttp()
+
+    /** HTTP engine used by the existing GitHub Mod requests and downloads. */
+    fun createModHttpClientEngine(): HttpClientEngine = CIO.create()
 
     /** Secure storage hooks used only by platforms that opt in through [PlatformCapabilities.secureMultiplayerServerPasswords]. */
     @Readonly

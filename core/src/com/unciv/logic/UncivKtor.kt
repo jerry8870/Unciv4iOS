@@ -10,7 +10,10 @@ import io.ktor.http.*
 
 object UncivKtor {
     val client by lazy {
-        HttpClient(CIO) {
+        val engine = if (UncivGame.isCurrentInitialized())
+            UncivGame.Current.createModHttpClientEngine()
+        else CIO.create()
+        HttpClient(engine) {
             followRedirects = true
             install(HttpRequestRetry) {
                 maxRetries = 3
