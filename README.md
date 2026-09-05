@@ -48,28 +48,31 @@ Not available yet: the `ios/` module will be published here alongside the source
 
 ## What's the roadmap?
 
-The iOS port is built in two phases:
+The iOS port is built in two phases, both of which are now complete:
 
-**Phase 1 - Single player (current focus)**
+**Phase 1 - Single player (complete)**
 
-Get a fully playable single player game running on iOS:
+A fully playable single player game runs on iPhone and iPad:
 
 * Touch-first UI+UX improvements ([suggestions welcome!](https://github.com/jerry8870/Unciv4iOS/issues/new?assignees=&labels=feature&template=feature_request.md&title=Feature+request%3A+))
 * Save games, mods and assets working correctly under the iOS sandbox
 * Performance and stability on iPhone and iPad
 
-**Phase 2 - Multiplayer and online features**
+**Phase 2 - Multiplayer (complete)**
 
-Once single player is solid, the online parts come next:
+Multiplayer now works in the foreground over public HTTPS API v1 servers - by
+default [uncivserver.xyz](https://uncivserver.xyz), or any custom public HTTPS
+server you enter in the game. See [how multiplayer works upstream](https://yairm210.github.io/Unciv/Other/Multiplayer/).
 
-* Multiplayer, which is based on save file up/download - see [how it works upstream](https://yairm210.github.io/Unciv/Other/Multiplayer/)
-* Dropbox sync, the default multiplayer backend upstream
-* Connecting to a self-hosted Unciv server
+Note: Dropbox-backed multiplayer has been removed upstream and is not supported on iOS.
 
 After that, we follow upstream:
 
 * G&K mechanics - see [upstream #4697](https://www.github.com/yairm210/Unciv/issues/4697)
 * BNW mechanics - trade routes, world congress, etc.
+
+Some things are still missing on iOS: multiplayer chat, push notifications,
+background polling, in-app mod management, and HTTP/LAN multiplayer servers.
 
 ## Contributing
 
