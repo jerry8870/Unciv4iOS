@@ -1,7 +1,7 @@
 package com.unciv.ui.components.extensions
 
-import java.time.Duration
-import java.time.Instant
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 
 
 fun Duration.isLargerThan(other: Duration): Boolean {

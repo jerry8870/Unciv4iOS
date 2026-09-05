@@ -1,0 +1,13 @@
+Ponovna implementacija otvorenog koda najpoznatije igre za izgradnju civilizacije svih vremena – brza i mala!
+
+Izgradite svoju civilizaciju, istražujte tehnologije, proširujte svoje gradove i porazite svoje neprijatelje!
+
+Imate zahtjev ili ste pronašli grešku? Želite pomoći u razvoju? Spisak zadataka aplikacije nalazi se na https://github.com/jerry8870/Unciv4iOS
+
+Imate pitanja ili komentare? Pridružite nam se na Discordu: https://discord.gg/bjrB4Xw ;)
+
+Želite pomoći u prevođenju igre na svoj jezik? Pogledajte https://yairm210.github.io/Unciv/Translating/Translating/
+
+Svijet čeka! Hoćete li izgraditi svoju civilizaciju u carstvo koje će izdržati test vremena?
+
+Dozvola za „potpuni pristup mreži” potrebna je za preuzimanja koja pokrene korisnik i za funkciju igre za više igrača. Sve ostale navedene dozvole automatski uključuje API koji se koristi za obavijesti o potezima u igri za više igrača. Mrežne dozvole koriste se za prikazivanje liste modova, preuzimanje modova i muzike te slanje/preuzimanje igara za više igrača. Unciv ne pokreće nikakvu drugu internetsku komunikaciju.

@@ -24,16 +24,22 @@ class GameSetupInfo(
          * @param defaultDifficulty Overrides difficulty only when no saved settings found, so a virgin
          *          Unciv installation can QuickStart with a different difficulty than New Game defaults to.
          */
-        fun fromSettings(defaultDifficulty: String? = null) = UncivGame.Current.settings.run {
-            if (lastGameSetup == null) GameSetupInfo().apply {
-                if (defaultDifficulty != null) gameParameters.difficulty = defaultDifficulty
-                mapParameters.shape = MapShape.rectangular
-                mapParameters.worldWrap = true
-                gameParameters.espionageEnabled = true
+        fun fromSettings(defaultDifficulty: String? = null): GameSetupInfo {
+            val setup = UncivGame.Current.settings.run {
+                if (lastGameSetup == null) GameSetupInfo().apply {
+                    if (defaultDifficulty != null) gameParameters.difficulty = defaultDifficulty
+                    mapParameters.shape = MapShape.rectangular
+                    mapParameters.worldWrap = true
+                    gameParameters.espionageEnabled = true
+                } else GameSetupInfo(lastGameSetup!!).apply {
+                    mapParameters.reseed()
+                }
             }
-            else GameSetupInfo(lastGameSetup!!).apply {
-                mapParameters.reseed()
+            if (!UncivGame.Current.platformCapabilities.onlineMultiplayer) {
+                setup.gameParameters.isOnlineMultiplayer = false
+                setup.gameParameters.multiplayerServerUrl = null
             }
+            return setup
         }
     }
 }

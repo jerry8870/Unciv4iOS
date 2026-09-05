@@ -251,9 +251,9 @@
   {
     "name": "Contact Me",
     "steps": [
-      "Hi there! If you've played this far, you've probably seen that the game is currently incomplete.\n Unciv is meant to be open-source and free, forever.\n That means no ads or any other nonsense.",
+      "Hi there! If you've played this far, you've probably seen that the game is currently incomplete.\n Unciv will remain open-source forever.",
       "What motivates me to keep working on it, \n  besides the fact I think it's amazingly cool that I can,\n  is the support from the players - you guys are the best!",
-      "Every rating and review that I get puts a smile on my face =)\n  So contact me! Send me an email, review, Github issue\n  or mail pigeon, and let's figure out how to make the game \n  even more awesome!\n(Contact info is in the Play Store)"
+      "If you like Unciv, please rate and review it in the App Store.\n If you find a problem or have a suggestion, open a GitHub issue and help us make the game even better!"
     ]
   },
   {
@@ -635,7 +635,7 @@
             {"text":"Bindings mapped to their default keys are displayed in gray, those reassigned by you in white."},
             {"text":"Conflicting assignments are marked red. Conflicts can exist across categories, like World Screen / Unit Actions. Note that at the moment, the game does not prevent saving conflicting assignments, though the result may be unexpected."},
             {},
-            {"text":"For discussion about missing entries, see the linked github issue.","link":"https://github.com/yairm210/Unciv/issues/8862"}
+            {"text":"For discussion about missing entries, see the linked github issue.","link":"https://github.com/jerry8870/Unciv4iOS/issues"}
         ]
     },
     {

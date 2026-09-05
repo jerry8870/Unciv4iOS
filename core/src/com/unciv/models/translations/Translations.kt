@@ -11,6 +11,7 @@ import com.unciv.models.stats.Stats
 import com.unciv.ui.components.fonts.DiacriticSupport
 import com.unciv.ui.components.fonts.FontRulesetIcons
 import com.unciv.utils.Log
+import com.unciv.utils.RoboVMCompatibleLinkedHashMap
 import com.unciv.utils.debug
 import com.unciv.utils.hashOf
 import org.jetbrains.annotations.VisibleForTesting
@@ -38,7 +39,7 @@ import yairm210.purity.annotations.Readonly
  *
  *  @see    String.tr   for more explanations (below)
  */
-class Translations : LinkedHashMap<String, TranslationEntry>() {
+class Translations : RoboVMCompatibleLinkedHashMap<String, TranslationEntry>() {
 
     var percentCompleteOfLanguages = HashMap<String,Int>()
             .apply { put(Constants.english, 100) } // So even if we don't manage to load the percentages, we can still pass the language screen
@@ -368,7 +369,7 @@ private fun String.translateConditionals(hideIcons: Boolean, language: String): 
     // Now sort the input conditionals by looking their sort priority up (sorting to the end if none defined).
     // Remember this sort operator is stable - entries with identical priority keep their original ordering,
     // so if the conditional order definition is empty, all conditionals keep their place.
-    fun sortPriority(unique: Unique) = sortPriorities.getOrDefault(unique.placeholderText, Int.MAX_VALUE)
+    fun sortPriority(unique: Unique) = sortPriorities[unique.placeholderText] ?: Int.MAX_VALUE
     val translatedConditionals = this.getModifiersSequence()
         .sortedBy(::sortPriority)
         .map { it.text.tr(hideIcons) }

@@ -3,13 +3,16 @@ package com.unciv.ui.screens.savescreens
 import com.unciv.UncivGame
 import com.unciv.logic.GameInfo
 import com.unciv.logic.UncivShowableException
+import com.unciv.logic.multiplayer.rethrowCancellationAfterCleanup
 import com.unciv.ui.popups.LoadingPopup
 import com.unciv.ui.popups.ToastPopup
 import com.unciv.ui.screens.mainmenuscreen.MainMenuScreen
 import com.unciv.ui.screens.worldscreen.WorldScreen
 import com.unciv.utils.Concurrency
 import com.unciv.utils.Log
+import com.unciv.utils.ONLINE_MULTIPLAYER_UNAVAILABLE
 import com.unciv.utils.launchOnGLThread
+import kotlinx.coroutines.CancellationException
 
 
 //todo reduce code duplication
@@ -87,9 +90,21 @@ object QuickSave {
                 return@run
             }
 
+            if (savedGame.gameParameters.isOnlineMultiplayer && !screen.game.platformCapabilities.onlineMultiplayer) {
+                launchOnGLThread {
+                    loadingPopup.close()
+                    ToastPopup(ONLINE_MULTIPLAYER_UNAVAILABLE, screen)
+                }
+                return@run
+            }
+
             if (savedGame.gameParameters.isOnlineMultiplayer) {
                 try {
                     screen.game.onlineMultiplayer.downloadGame(savedGame)
+                } catch (ex: CancellationException) {
+                    rethrowCancellationAfterCleanup(ex) {
+                        Concurrency.runOnGLThread { loadingPopup.close() }
+                    }
                 } catch (_: OutOfMemoryError) {
                     outOfMemory()
                 } catch (notAPlayer: UncivShowableException) {

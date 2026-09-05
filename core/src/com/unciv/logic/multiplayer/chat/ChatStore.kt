@@ -3,7 +3,6 @@ package com.unciv.logic.multiplayer.chat
 import com.badlogic.gdx.Gdx
 import com.unciv.UncivGame
 import com.unciv.ui.screens.worldscreen.chat.ChatPopup
-import com.unciv.utils.toUUIDOrNull
 import java.util.Collections.synchronizedMap
 import java.util.LinkedList
 import java.util.Queue
@@ -11,6 +10,7 @@ import java.util.UUID
 
 data class Chat(
     val gameId: UUID,
+    val serverUrl: String? = null,
 ) {
     var unreadCount = 0
 
@@ -27,6 +27,11 @@ data class Chat(
      * The server will relay it back if a delivery was acknowledged and that is when we should display it.
      */
     fun requestMessageSend(civName: String, message: String) {
+        if (!UncivGame.Current.platformCapabilities.multiplayerChat) return
+        if (serverUrl != null
+            && serverUrl.normalizedServerUrl() !=
+                UncivGame.Current.settings.multiplayer.getServer().normalizedServerUrl()
+        ) return
         Gdx.app.postRunnable {
             ChatWebSocket.requestMessageSend(Message.Chat(civName, message, gameId.toString()))
         }
@@ -51,6 +56,8 @@ data class Chat(
 }
 
 object ChatStore {
+    private data class ChatKey(val serverUrl: String, val gameId: UUID)
+
     /** The reference to the [ChatPopup] instance which trying to take a peek at our messages currently.
      * What audacity this popup has!!
      */
@@ -58,27 +65,31 @@ object ChatStore {
 
     var hasGlobalMessage = false
 
-    private var gameIdToChat: MutableMap<UUID, Chat> = synchronizedMap(mutableMapOf())
+    private var gameIdToChat: MutableMap<ChatKey, Chat> = synchronizedMap(mutableMapOf())
 
     /** When no [ChatPopup] is open to receive these oddities, we keep them here.
      * Certainly better than not knowing why the socket closed.
      */
     private var globalMessages: Queue<Pair<String, String>> = LinkedList()
 
-    fun getChatByGameId(gameId: UUID): Chat = gameIdToChat.getOrPut(gameId) { Chat(gameId) }
-    fun getChatByGameId(gameId: String): Chat = getChatByGameId(UUID.fromString(gameId))
+    fun getChatByGameId(gameId: UUID, serverUrl: String? = null): Chat {
+        val key = ChatKey(serverUrl.normalizedServerUrl(), gameId)
+        return gameIdToChat.getOrPut(key) { Chat(gameId, serverUrl) }
+    }
+    fun getChatByGameId(gameId: String, serverUrl: String? = null): Chat =
+        getChatByGameId(UUID.fromString(gameId), serverUrl)
 
-    fun getGameIds() = gameIdToChat.keys.map { uuid -> uuid.toString() }
+    fun getGameIds() = gameIdToChat.keys.map { it.gameId.toString() }.distinct()
 
     /**
      * Clears chat by triggering a garbage collection.
      */
     fun clear() {
-        gameIdToChat = mutableMapOf()
+        gameIdToChat = synchronizedMap(mutableMapOf())
         globalMessages = LinkedList()
     }
 
-    fun relayChatMessage(incomingChatMsg: Response.Chat) {
+    fun relayChatMessage(incomingChatMsg: Response.Chat, serverUrl: String) {
         Gdx.app.postRunnable {
             if (incomingChatMsg.gameId == null || incomingChatMsg.gameId.isBlank()) {
                 relayGlobalMessage(incomingChatMsg.message, incomingChatMsg.civName)
@@ -90,14 +101,18 @@ object ChatStore {
                     return@postRunnable
                 }
 
-                val chat = chatPopup?.chat ?: getChatByGameId(gameId)
+                val popupChat = chatPopup?.chat?.takeIf {
+                    it.gameId == gameId &&
+                        it.serverUrl.normalizedServerUrl() == serverUrl.normalizedServerUrl()
+                }
+                val chat = popupChat ?: getChatByGameId(gameId, serverUrl)
                 chat.addMessage(incomingChatMsg.civName, incomingChatMsg.message)
-                if (gameId.equals(chatPopup?.chat?.gameId)) {
+                if (popupChat != null) {
                     chatPopup?.addMessage(incomingChatMsg.civName, incomingChatMsg.message)
                 }
 
-                if (chatPopup == null && incomingChatMsg.civName != "System") {
-                    if (!gameId.equals(UncivGame.Current.worldScreen?.gameInfo?.gameId?.toUUIDOrNull())) {
+                if (popupChat == null && incomingChatMsg.civName != "System") {
+                    if (!UncivGame.isCurrentGame(gameId.toString(), serverUrl)) {
                         // user is out of world screen or
                         // some other game not currently on screen has a message
                         chat.unreadCount++
@@ -134,3 +149,5 @@ object ChatStore {
         }
     }
 }
+
+private fun String?.normalizedServerUrl() = this?.trimEnd('/').orEmpty()

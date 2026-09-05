@@ -483,7 +483,15 @@ class TileMap(initialCapacity: Int = 10) : IsPartOfGameInfoSerialization {
             vectorUnwrappedLeft
     }
 
-    data class ViewableTile(val tile: Tile, val maxHeightSeenToTile: Int, val isVisible: Boolean, val isAttackable: Boolean)
+    data class ViewableTile(val tile: Tile, val maxHeightSeenToTile: Int, val isVisible: Boolean, val isAttackable: Boolean) {
+        override fun hashCode(): Int {
+            var result = tile.hashCode()
+            result = 31 * result + maxHeightSeenToTile
+            result = 31 * result + if (isVisible) 1231 else 1237
+            result = 31 * result + if (isAttackable) 1231 else 1237
+            return result
+        }
+    }
 
     /** @return List of tiles visible from location [position] for a unit with sight range [sightDistance] */
     @Readonly

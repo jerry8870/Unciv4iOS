@@ -1,8 +1,8 @@
-O reimplementare a celui mai faimos joc de construire a civilizației din toate timpurile - rapid, mic, fără reclame, gratuit pentru totdeauna!
+O reimplementare a celui mai faimos joc de construire a civilizației din toate timpurile - rapid și mic!
 
 Construiește-ți civilizația, cercetează tehnologii, extinde-ți orașele și învinge-ți dușmanii!
 
-Cereri? Bug-uri? Lista de toate pentru aplicație este https://github.com/yairm210/Unciv/issues, fiecare mic ajutor este binevenit!
+Cereri? Bug-uri? Lista de toate pentru aplicație este https://github.com/jerry8870/Unciv4iOS, fiecare mic ajutor este binevenit!
 
 Întrebări? Comentarii? Doar plictisit? Alăturați-vă nouă pe https://discord.gg/bjrB4Xw.
 

@@ -1,6 +1,7 @@
 //  Taken from https://github.com/TomGrill/gdx-testing
 package com.unciv.logic
 
+import com.badlogic.gdx.utils.GdxRuntimeException
 import com.unciv.Constants
 import com.unciv.UncivGame
 import com.unciv.models.UnitActionType
@@ -30,6 +31,7 @@ import com.unciv.testing.RedirectPolicy
 import com.unciv.ui.components.fonts.DiacriticSupport
 import com.unciv.ui.components.fonts.FontRulesetIcons
 import com.unciv.ui.components.input.KeyboardBinding
+import com.unciv.ui.screens.savescreens.LoadGameScreen
 import com.unciv.utils.Log
 import org.junit.Assert
 import org.junit.Ignore
@@ -86,6 +88,18 @@ class TranslationTests {
         Assert.assertTrue("This test will only pass if there are translations",
             translations.isNotEmpty()
         )
+    }
+
+    @Test
+    fun showableNestedExceptionUsesLocalizedCause() {
+        setupUncivGame()
+        addTranslation("Picker failed", "Localized picker failure")
+        val wrapped = GdxRuntimeException("Wrapper", UncivShowableException("Picker failed"))
+
+        val (message, isUserFixable) = LoadGameScreen.getLoadExceptionMessage(wrapped, "Load failed")
+
+        Assert.assertTrue(isUserFixable)
+        Assert.assertEquals("Load failed\nLocalized picker failure", message)
     }
 
 

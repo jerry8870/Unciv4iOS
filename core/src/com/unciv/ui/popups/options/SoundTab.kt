@@ -9,6 +9,7 @@ import com.unciv.ui.components.extensions.toLabel
 import com.unciv.ui.components.extensions.toTextButton
 import com.unciv.ui.components.input.onClick
 import com.unciv.utils.Concurrency
+import com.unciv.utils.DEFAULT_MUSIC_DOWNLOAD_UNAVAILABLE
 import com.unciv.utils.launchOnGLThread
 
 internal class SoundTab(
@@ -26,8 +27,13 @@ internal class SoundTab(
         if (music.isMusicAvailable())
             addMusicControls(settings, music)
 
-        if (!music.isDefaultFileAvailable())
-            addDownloadMusic()
+        if (!music.isDefaultFileAvailable()) {
+            if (game.platformCapabilities.defaultMusicDownload)
+                addDownloadMusic()
+            else
+                add(DEFAULT_MUSIC_DOWNLOAD_UNAVAILABLE.toLabel(Color.GRAY))
+                    .colspan(2).padTop(20f).row()
+        }
 
         super.lateInitialize()
     }

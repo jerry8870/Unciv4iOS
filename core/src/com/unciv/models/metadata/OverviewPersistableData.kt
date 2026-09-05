@@ -8,10 +8,10 @@ import com.unciv.ui.screens.overviewscreen.EmpireOverviewTab
 
 class OverviewPersistableData(
     private val map: LinkedHashMap<EmpireOverviewCategories, EmpireOverviewTab.EmpireOverviewTabPersistableData> = linkedMapOf()
-) : Json.Serializable,
-    Map<EmpireOverviewCategories, EmpireOverviewTab.EmpireOverviewTabPersistableData> by map
-{
+) : Json.Serializable {
     var last: EmpireOverviewCategories = EmpireOverviewCategories.Cities
+
+    operator fun get(category: EmpireOverviewCategories) = map[category]
 
     fun update(pageObjects: Map<EmpireOverviewCategories, EmpireOverviewTab>) {
         for ((category, page) in pageObjects)

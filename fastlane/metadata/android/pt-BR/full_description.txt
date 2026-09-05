@@ -1,8 +1,8 @@
-Uma reimplementação do jogo de construção civil mais famoso de sempre - rápido, pequeno, sem anúncios, grátis para sempre!
+Uma reimplementação do jogo de construção civil mais famoso de sempre - rápido e pequeno!
 
 Construa a sua civilização, pesquise tecnologias, expanda as suas cidades e derrote os seus inimigos!
 
-Pedidos? Bugs? A lista de TODO para a aplicação está em https://github.com/yairm210/Unciv/issues, toda ajuda é bem-vinda!
+Pedidos? Bugs? A lista de TODO para a aplicação está em https://github.com/jerry8870/Unciv4iOS, toda ajuda é bem-vinda!
 
 Perguntas? Comentários? Apenas querendo conversar? Junte-se a nós em https://discord.gg/bjrB4Xw.
 

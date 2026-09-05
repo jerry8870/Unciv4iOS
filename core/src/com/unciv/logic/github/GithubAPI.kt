@@ -7,6 +7,7 @@ import com.unciv.json.json
 import com.unciv.logic.UncivKtor
 import com.unciv.logic.UncivShowableException
 import com.unciv.logic.github.Github.repoNameToFolderName
+import com.unciv.utils.ONLINE_MOD_MANAGEMENT_UNAVAILABLE
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -20,9 +21,6 @@ import java.util.zip.ZipInputStream
 import kotlinx.coroutines.Job
 import java.io.FileFilter
 import kotlin.coroutines.coroutineContext
-import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 enum class DownloadAndExtractState {
     Downloading {
@@ -59,17 +57,29 @@ object GithubAPI {
     /**
      * Add a bearer token here if needed
      *
-     * @see <a href="https://github.com/yairm210/Unciv/issues/13951#issuecomment-3326406877">#13951 (comment)</a>
+     * @see <a href="https://github.com/jerry8870/Unciv4iOS">#13951 (comment)</a>
      */
     const val bearerToken = ""
 
-    private val client = UncivKtor.client.config {
-        defaultRequest {
-            url(baseUrl)
-            header("X-GitHub-Api-Version", "2022-11-28")
-            header(HttpHeaders.Accept, "application/vnd.github+json")
-            userAgent(UncivGame.getUserAgent("Github"))
-            if (bearerToken.isNotBlank()) bearerAuth(bearerToken)
+    private val client by lazy {
+        UncivKtor.client.config {
+            defaultRequest {
+                url(baseUrl)
+                header("X-GitHub-Api-Version", "2022-11-28")
+                header(HttpHeaders.Accept, "application/vnd.github+json")
+                userAgent(UncivGame.getUserAgent("Github"))
+                if (bearerToken.isNotBlank()) bearerAuth(bearerToken)
+            }
+        }
+    }
+
+    internal fun isOnlineModManagementAvailable() =
+        !UncivGame.isCurrentInitialized()
+            || UncivGame.Current.platformCapabilities.onlineModManagement
+
+    private fun requireOnlineModManagement() {
+        if (!isOnlineModManagementAvailable()) {
+            throw UncivShowableException(ONLINE_MOD_MANAGEMENT_UNAVAILABLE)
         }
     }
 
@@ -80,6 +90,7 @@ object GithubAPI {
         maxRateLimitedRetries: Int = 3,
         block: HttpRequestBuilder.() -> Unit,
     ): HttpResponse {
+        requireOnlineModManagement()
         val resp = client.request(block)
         val rateLimited = consumeRateLimit(resp)
 
@@ -122,7 +133,6 @@ object GithubAPI {
     /**
      * Wait for rate limit to end if any and returns true if there was any rate limit
      */
-    @OptIn(ExperimentalTime::class)
     private suspend fun consumeRateLimit(resp: HttpResponse): Boolean {
         if (resp.status != HttpStatusCode.Forbidden && resp.status != HttpStatusCode.TooManyRequests) return false
 
@@ -130,7 +140,8 @@ object GithubAPI {
         if (remainingRequests < 1) return false
 
         val resetEpoch = resp.headers["x-ratelimit-reset"]?.toLongOrNull() ?: 0
-        delay(Instant.fromEpochSeconds(resetEpoch) - Clock.System.now())
+        val waitMilliseconds = (resetEpoch * 1000L - System.currentTimeMillis()).coerceAtLeast(0L)
+        delay(waitMilliseconds)
 
         return true
     }
@@ -162,8 +173,17 @@ object GithubAPI {
     /**
      * We are not using KtorGithubAPI here because the URL provided is not an API URL
      */
-    suspend fun fetchPreviewImageOrNull(modUrl: String, branch: String, ext: String) =
-        UncivKtor.getOrNull("$modUrl/$branch/preview.${ext}") { host = "raw.githubusercontent.com" }
+    suspend fun fetchPreviewImageOrNull(modUrl: String, branch: String, ext: String): HttpResponse? {
+        if (!isOnlineModManagementAvailable()) return null
+        return UncivKtor.getOrNull("$modUrl/$branch/preview.${ext}") {
+            host = "raw.githubusercontent.com"
+        }
+    }
+
+    internal suspend fun fetchOnlineImageOrNull(url: String): HttpResponse? {
+        if (!isOnlineModManagementAvailable()) return null
+        return UncivKtor.getOrNull(url)
+    }
 
     //endregion
     //region responses
@@ -201,7 +221,7 @@ object GithubAPI {
         var stargazers_count = 0
         var default_branch = ""
         var html_url = ""
-        var pushed_at = "" // don't use updated_at - see https://github.com/yairm210/Unciv/issues/6106
+        var pushed_at = "" // don't use updated_at - see https://github.com/jerry8870/Unciv4iOS
         var size = 0
         var topics = mutableListOf<String>()
         //var stargazers_url = ""
@@ -391,6 +411,7 @@ object GithubAPI {
         /** Should accept a number 0-100 */
         updateProgressPercent: ((DownloadAndExtractState, Int?) -> Unit)? = null
     ): FileHandle? {
+        requireOnlineModManagement()
         val modsFolder = UncivGame.Current.files.getModsFolder()
         
         var modNameFromFileName = name

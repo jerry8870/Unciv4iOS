@@ -6,8 +6,8 @@ import com.unciv.ui.components.fonts.Fonts
 import yairm210.purity.annotations.Pure
 import yairm210.purity.annotations.Readonly
 import java.text.SimpleDateFormat
-import java.time.Duration
-import java.time.temporal.ChronoUnit
+import org.threeten.bp.Duration
+import org.threeten.bp.temporal.ChronoUnit
 import java.util.Date
 import java.util.Locale
 import java.util.SortedMap

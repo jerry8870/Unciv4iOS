@@ -15,7 +15,10 @@ import com.unciv.logic.civilization.PlayerType
 import com.unciv.logic.files.MapSaver
 import com.unciv.logic.map.MapGeneratedMainType
 import com.unciv.logic.multiplayer.Multiplayer
+import com.unciv.logic.multiplayer.rethrowCancellationAfterCleanup
 import com.unciv.logic.multiplayer.storage.FileStorageRateLimitReached
+import com.unciv.logic.multiplayer.storage.MultiplayerGameCreationPartialException
+import com.unciv.logic.multiplayer.storage.MultiplayerGameCreationCancelledException
 import com.unciv.models.metadata.BaseRuleset
 import com.unciv.models.metadata.GameSetupInfo
 import com.unciv.models.metadata.Player
@@ -45,8 +48,8 @@ import com.unciv.utils.Concurrency
 import com.unciv.utils.Log
 import com.unciv.utils.isUUID
 import com.unciv.utils.launchOnGLThread
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
-import java.net.URI
 import kotlin.math.floor
 import com.unciv.ui.components.widgets.AutoScrollPane as ScrollPane
 
@@ -126,40 +129,46 @@ class NewGameScreen(
         Gdx.input.inputProcessor = null
         mapOptionsTable.cancelBackgroundJobs()
         Concurrency.run {  // even just *checking* can take time
-            val errorMessage = getErrorMessage()
-            if (errorMessage != null){
-                Concurrency.runOnGLThread {
-                    val errorPopup = Popup(this@NewGameScreen)
-                    errorPopup.addGoodSizedLabel(errorMessage).row()
-                    errorPopup.addCloseButton()
-                    errorPopup.open()
-                    Gdx.input.inputProcessor = stage
+            try {
+                val errorMessage = getErrorMessage()
+                if (errorMessage != null){
+                    Concurrency.runOnGLThread {
+                        val errorPopup = Popup(this@NewGameScreen)
+                        errorPopup.addGoodSizedLabel(errorMessage).row()
+                        errorPopup.addCloseButton()
+                        errorPopup.open()
+                        Gdx.input.inputProcessor = stage
+                    }
+                    return@run
                 }
-                return@run
-            }
 
-            // Requires a custom popup so can't be folded into getErrorMessage
-            val modCheckResult = newGameOptionsTable.modCheckboxes.savedModcheckResult
-            newGameOptionsTable.modCheckboxes.savedModcheckResult = null
-            if (modCheckResult != null) {
-                Concurrency.runOnGLThread {
-                    AcceptModErrorsPopup(
-                        this@NewGameScreen, modCheckResult,
-                        action = {
-                            gameSetupInfo.gameParameters.acceptedModCheckErrors = modCheckResult
-                            startGameAvoidANRs()
-                        }
-                    )
-                    Gdx.input.inputProcessor = stage
+                // Requires a custom popup so can't be folded into getErrorMessage
+                val modCheckResult = newGameOptionsTable.modCheckboxes.savedModcheckResult
+                newGameOptionsTable.modCheckboxes.savedModcheckResult = null
+                if (modCheckResult != null) {
+                    Concurrency.runOnGLThread {
+                        AcceptModErrorsPopup(
+                            this@NewGameScreen, modCheckResult,
+                            action = {
+                                gameSetupInfo.gameParameters.acceptedModCheckErrors = modCheckResult
+                                startGameAvoidANRs()
+                            }
+                        )
+                        Gdx.input.inputProcessor = stage
+                    }
+                    return@run
                 }
-                return@run
+                startGame()
+            } catch (ex: CancellationException) {
+                rethrowCancellationAfterCleanup(ex) {
+                    Concurrency.runOnGLThread { Gdx.input.inputProcessor = stage }
+                }
             }
-            startGame()
         }
     }
     
     // Should be run NOT on main thread because it contacts MP server and loads maps etc
-    fun getErrorMessage(): String? {
+    suspend fun getErrorMessage(): String? {
         if (gameSetupInfo.gameParameters.isOnlineMultiplayer) {
             if (!checkConnectionToMultiplayerServer())
                 return if (Multiplayer.usesCustomServer()) "Couldn't connect to Multiplayer Server!"
@@ -227,7 +236,10 @@ class NewGameScreen(
 
     /** Subtables may need an upper limit to their width - they can ask this function. */
     // In sync with isPortrait in init, here so UI details need not know about 3-column vs 1-column layout
-    internal fun getColumnWidth() = floor(stage.width / (if (isNarrowerThan4to3()) 1 else 3))
+    internal fun getColumnWidth() = floor(
+        if (isNarrowerThan4to3()) stage.width
+        else (stage.width - 2f) / 3f
+    )
 
     internal fun refreshExampleMap() {
         if (mapOptionsTableInitialized)
@@ -236,6 +248,7 @@ class NewGameScreen(
 
     private fun initLandscape() {
         scrollPane.setScrollingDisabled(true,true)
+        val columnWidth = getColumnWidth()
 
         topTable.add("Game Options".toLabel(fontSize = Constants.headingFontSize)).pad(20f, 0f)
         topTable.addSeparatorVertical(ImageGetter.CHARCOAL, 1f)
@@ -246,14 +259,14 @@ class NewGameScreen(
 
         topTable.add(ScrollPane(newGameOptionsTable)
                 .apply { setOverscroll(false, false) })
-                .width(stage.width / 3).top()
+                .width(columnWidth).top()
         topTable.addSeparatorVertical(Color.CLEAR, 1f)
         topTable.add(ScrollPane(mapOptionsTable)
                 .apply { setOverscroll(false, false) })
-                .width(stage.width / 3).top()
+                .width(columnWidth).top()
         topTable.addSeparatorVertical(Color.CLEAR, 1f)
         topTable.add(playerPickerTable)  // No ScrollPane, PlayerPickerTable has its own
-                .width(stage.width / 3).top()
+                .width(columnWidth).top()
     }
 
     private fun initPortrait() {
@@ -278,16 +291,12 @@ class NewGameScreen(
         }).expandX().fillX().row()
     }
 
-    private fun checkConnectionToMultiplayerServer(): Boolean {
+    private suspend fun checkConnectionToMultiplayerServer(): Boolean {
         return try {
-            val multiplayerServer = UncivGame.Current.settings.multiplayer.getServer()
-            val u = URI(if (Multiplayer.usesDropbox()) "https://content.dropboxapi.com" else multiplayerServer).toURL()
-            val con = u.openConnection()
-            con.connectTimeout = 3000
-            con.connect()
-
-            true
-        } catch(_: Throwable) {
+            game.onlineMultiplayer.multiplayerServer.checkServerStatus()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (_: Exception) {
             false
         }
     }
@@ -308,14 +317,14 @@ class NewGameScreen(
             else {
                 val gameInfo = game.files.loadGameFromFile(selectedScenario.file)
                 // Remove the Spectator - it was recommended by the wiki as Scenario builder
-                gameInfo.civilizations.removeIf { it.civID == Constants.spectator }
+                gameInfo.civilizations.removeAll { it.civID == Constants.spectator }
                 for (civ in gameInfo.civilizations) {
                     civ.playerType = PlayerType.AI
                     civ.diplomacy.remove(Constants.spectator)
-                    civ.popupAlerts.removeIf { it.type == AlertType.FirstContact && it.value == Constants.spectator }
+                    civ.popupAlerts.removeAll { it.type == AlertType.FirstContact && it.value == Constants.spectator }
                 }
                 // Ergo the Spectator can't be chosen from NewGameScreen - make sure
-                gameSetupInfo.gameParameters.players.removeIf { it.chosenCiv == Constants.spectator }
+                gameSetupInfo.gameParameters.players.removeAll { it.chosenCiv == Constants.spectator }
                 // Now assign player types to explicit player Nation choices that exist in the game,
                 // remembering which are already "used".
                 // (at the moment NewGameScreen forbids such choices for scenarios, but let's support it here in case someone goes and does) 
@@ -361,27 +370,103 @@ class NewGameScreen(
             return@coroutineScope
         }
 
+        var previewUploadPending = false
         if (gameSetupInfo.gameParameters.isOnlineMultiplayer) {
             newGame.isUpToDate = true // So we don't try to download it from dropbox the second after we upload it - the file is not yet ready for loading!
             try {
                 game.onlineMultiplayer.createGame(newGame)
-                game.files.autosaves.requestAutoSave(newGame)
+            } catch (exception: MultiplayerGameCreationPartialException) {
+                if (!exception.localRecoveryAvailable) {
+                    launchOnGLThread {
+                        Gdx.app.clipboard.contents = exception.gameId
+                        popup.reuseWith(
+                            "Creation stopped before upload because a local recovery copy " +
+                                "could not be saved.",
+                            true,
+                        )
+                        Gdx.input.inputProcessor = stage
+                        rightSideButton.enable()
+                        rightSideButton.setText("Start game!".tr())
+                    }
+                    return@coroutineScope
+                }
+                if (!exception.fullUploadConfirmed) {
+                    launchOnGLThread {
+                        Gdx.app.clipboard.contents = exception.gameId
+                        popup.reuseWith(
+                            "Remote creation could not be confirmed. The Game ID was copied " +
+                                "and a local recovery copy was saved. Open that Multiplayer " +
+                                "entry to resume this exact game; do not start another one.",
+                            true,
+                        )
+                        Gdx.input.inputProcessor = stage
+                        rightSideButton.disable()
+                        rightSideButton.setText("Recovery saved".tr())
+                    }
+                    return@coroutineScope
+                }
+                // The full game and a local recovery copy both exist. Continue into that exact
+                // game instead of generating a new UUID and abandoning the remote full save.
+                previewUploadPending = !exception.previewConfirmed
             } catch (ex: FileStorageRateLimitReached) {
                 launchOnGLThread {
-                    popup.reuseWith("Server limit reached! Please wait for [${ex.limitRemainingSeconds}] seconds", true)
-                    rightSideButton.enable()
-                    rightSideButton.setText("Start game!".tr())
+                    Gdx.app.clipboard.contents = newGame.gameId
+                    popup.reuseWith(
+                        "Server limit reached! Please wait for [${ex.limitRemainingSeconds}] seconds. " +
+                            "The Game ID was copied; open its saved Multiplayer entry to retry.",
+                        true,
+                    )
+                    Gdx.input.inputProcessor = stage
+                    rightSideButton.disable()
+                    rightSideButton.setText("Recovery saved".tr())
                 }
-                Gdx.input.inputProcessor = stage
                 return@coroutineScope
+            } catch (ex: MultiplayerGameCreationCancelledException) {
+                rethrowCancellationAfterCleanup(ex) {
+                    Concurrency.runOnGLThread {
+                        Gdx.app.clipboard.contents = ex.gameId
+                        val message = when {
+                            !ex.localRecoveryAvailable ->
+                                "Creation was interrupted and the Game ID was copied, but a local recovery copy could not be saved."
+                            ex.fullUploadConfirmed ->
+                                "The full game was uploaded before creation was interrupted. The Game ID was copied and a local recovery copy was saved."
+                            else ->
+                                "Remote creation could not be confirmed. The Game ID was copied and a local recovery copy was saved. " +
+                                    "Open that Multiplayer entry to resume this exact game."
+                        }
+                        popup.reuseWith(message, true)
+                        Gdx.input.inputProcessor = stage
+                        if (ex.localRecoveryAvailable) {
+                            rightSideButton.disable()
+                            rightSideButton.setText("Recovery saved".tr())
+                        } else {
+                            rightSideButton.enable()
+                            rightSideButton.setText("Start game!".tr())
+                        }
+                    }
+                }
+            } catch (ex: CancellationException) {
+                rethrowCancellationAfterCleanup(ex) {
+                    Concurrency.runOnGLThread {
+                        popup.close()
+                        Gdx.input.inputProcessor = stage
+                        rightSideButton.enable()
+                        rightSideButton.setText("Start game!".tr())
+                    }
+                }
             } catch (ex: Exception) {
                 Log.error("Error while creating game", ex)
                 launchOnGLThread {
-                    popup.reuseWith("Could not upload game!", true)
-                    rightSideButton.enable()
-                    rightSideButton.setText("Start game!".tr())
+                    Gdx.app.clipboard.contents = newGame.gameId
+                    popup.reuseWith(
+                        "Could not upload game. The Game ID was copied; open its saved " +
+                            "Multiplayer entry to retry this exact game.",
+                        true,
+                    )
+                    Gdx.input.inputProcessor = stage
+                    rightSideButton.disable()
+                    rightSideButton.setText("Recovery saved".tr())
                 }
-                Gdx.input.inputProcessor = stage
                 return@coroutineScope
             }
         }
@@ -395,7 +480,11 @@ class NewGameScreen(
                     // Save gameId to clipboard because you have to do it anyway.
                     Gdx.app.clipboard.contents = newGame.gameId
                     // Popup to notify the User that the gameID got copied to the clipboard
-                    ToastPopup("Game ID copied to clipboard!".tr(), worldScreen, 2500)
+                    val message = if (previewUploadPending) {
+                        "Game created and ID copied, but its turn preview is not confirmed. " +
+                            "Submitting the first turn will retry it."
+                    } else "Game ID copied to clipboard!"
+                    ToastPopup(message.tr(), worldScreen, if (previewUploadPending) 6000 else 2500)
             }
         }
     }

@@ -5,7 +5,6 @@ import org.junit.Assert
 import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.streams.toList
 
 @RunWith(BaseTestRunner::class)
 class LongPriorityQueueTest {
@@ -59,11 +58,12 @@ class LongPriorityQueueTest {
     }
     
     @Test
-    fun streamIteratesAllElements() {
+    fun forEachIteratesAllElements() {
         val queue = LongPriorityQueue(16)
         queue.addAll(longArrayOf(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L))
-        
-        val r = queue.stream().toList()
+
+        val r = mutableListOf<Long>()
+        queue.forEach { r.add(it) }
 
         Assert.assertEquals(listOf(0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L), r)
     }

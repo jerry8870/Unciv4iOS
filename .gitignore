@@ -118,10 +118,14 @@ gradle-app.setting
 Thumbs.db
 
 ## iOS
+/.env.app-store.local
+/AuthKey_*.p8
 /ios/xcode/*.xcodeproj/*
 !/ios/xcode/*.xcodeproj/xcshareddata
 !/ios/xcode/*.xcodeproj/project.pbxproj
 /ios/xcode/native/
+/fastlane/README.md
+/fastlane/report.xml
 
 /ios-moe/xcode/*.xcodeproj/*
 !/ios-moe/xcode/*.xcodeproj/xcshareddata
@@ -193,3 +197,8 @@ detekt/reports.html
 /buildSrc/.kotlin/errors/*
 /buildSrc/.kotlin/sessions/*
 /.claude/
+/.workbuddy/
+docs/Developers/
+
+# Local iOS simulator notes
+/ios/IOS_SIMULATOR_BUGS.md

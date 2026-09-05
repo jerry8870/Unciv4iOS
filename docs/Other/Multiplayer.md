@@ -1,6 +1,12 @@
 # Multiplayer
 
-Multiplayer in Unciv is based on simple save file up/download, which is why it is based on a free Dropbox account by default. However, a lot of people use this default, so it is uncertain if you'll actually be able to access it consistently. See [Hosting a Multiplayer server](#hosting-a-multiplayer-server) for hosting your own server.
+Multiplayer in Unciv is asynchronous and exchanges game save files through the selected server. The default is the community-operated `https://uncivserver.xyz`; it is not an official Unciv service, so availability and retention are not guaranteed. See [Hosting a Multiplayer server](#hosting-a-multiplayer-server) for other platforms and server options.
+
+The iOS foreground multiplayer MVP accepts public HTTPS API v1 servers only. It does not support LAN/HTTP servers, multiplayer Chat, API v2, Dropbox storage, automatic Mod downloads, push notifications, or background polling. Install the same Unciv and Mod versions on every participating device before joining.
+
+API v1 does not itself provide a game revision or conditional-write guarantee. A server used for iOS release qualification must preserve the uploaded full-save checksum, bind the route Game ID to the payload and an authorized participant/current player, publish full game plus preview safely, and document deletion and retention. Client retry/recovery protects the local copy; it cannot make an unsafe concurrent server write atomic.
+
+Legacy Dropbox-backed multiplayer is disabled on every platform because the former shared client credential was removed. Existing Dropbox game IDs are not migrated automatically; use an API v1 server for new games.
 
 ## How to play
 
@@ -13,6 +19,8 @@ Multiplayer in Unciv is based on simple save file up/download, which is why it i
 
 
 ## Hosting a Multiplayer server
+
+> The local HTTP/LAN examples in this section are not supported by the iOS build. An iOS-compatible custom server must expose the API v1 endpoints through a public HTTPS hostname.
 
 Due to certain limitations on Dropbox's API, with the current influx of players, we've many times reached the point that Dropbox has become unavailable.
 

@@ -27,7 +27,7 @@ internal object ConsoleLauncher {
     fun main(arg: Array<String>) {
         Log.backend = DesktopLogBackend()
 
-        val game = UncivGame(true)
+        val game = DesktopConsoleGame()
 
         UncivGame.Current = game
         UncivGame.Current.settings = GameSettings().apply {

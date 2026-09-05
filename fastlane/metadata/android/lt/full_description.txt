@@ -1,6 +1,6 @@
-Garsaus civilizacijos žaidimo nauja realizacija - greita, maža, be reklamų, nemokamai! 
+Garsaus civilizacijos žaidimo nauja realizacija - greita ir maža!
 
-Kurk savo civilizaciją, atrask technologijas, plėsk miestus ir nugalėk priešus! Pasiūlymai? Klaidos? Žiūrėk čia https://github.com/yairm210/Unciv/issues, bet kokia pagalba sveikintina! 
+Kurk savo civilizaciją, atrask technologijas, plėsk miestus ir nugalėk priešus! Pasiūlymai? Klaidos? Žiūrėk čia https://github.com/jerry8870/Unciv4iOS, bet kokia pagalba sveikintina!
 
 Klausimai? Komentarai? Junkis čia https://discord.gg/bjrB4Xw. Nori padėti vertimais į savo ar kitas kalbas? Siųsk laišką čia yairm210@hotmail.com. Programuoji Grok Java ar Kotlin? Junkis čia https://github.com/yairm210/Unciv. Pasaulis laukia tavęs! Ar pavyks paversti savo civilizaciją į imperiją tvarią laiko ir kitiems iššūkiams?  
 

@@ -144,11 +144,10 @@ data class GameContext(
             combatAction.hash(),
             otherCiv.hash(),
             region.hash(),
-            ignoreConditionals.hashCode()
+            if (ignoreConditionals) 1231 else 1237
         )
         return hash
     }
 
 
 }
-

@@ -69,8 +69,7 @@ object SoundPlayer {
 
         // Get a hash covering all mods - quickly, so don't map, cast or copy the Set types
         val gameInfo = game.gameInfo
-        @Suppress("IfThenToElvis")
-        val hash1 = if (gameInfo != null) gameInfo.ruleset.mods.hashCode() else 0
+        val hash1 = gameInfo?.getRulesetOrNull()?.mods?.hashCode() ?: 0
         val newHash = hash1.xor(game.settings.visualMods.hashCode())
 
         // If hash the same, leave the cache as is
@@ -104,8 +103,8 @@ object SoundPlayer {
         // (these can already be available when game.gameInfo is not)
         val modList: MutableSet<String> = mutableSetOf()
         val gameInfo = game.gameInfo
-        if (gameInfo != null) {
-            modList.addAll(gameInfo.ruleset.mods)  // Sounds from game mods
+        gameInfo?.getRulesetOrNull()?.let {
+            modList.addAll(it.mods)  // Sounds from game mods
         }
         modList.addAll(game.settings.visualMods)
 
@@ -117,7 +116,9 @@ object SoundPlayer {
     }
 
     /** Holds a Gdx Sound and a flag indicating the sound is freshly loaded and not from cache */
-    data class GetSoundResult(val resource: Sound, val isFresh: Boolean)
+    data class GetSoundResult(val resource: Sound, val isFresh: Boolean) {
+        override fun hashCode(): Int = 31 * resource.hashCode() + if (isFresh) 1231 else 1237
+    }
 
     /** Retrieve (if not cached create from resources) a Gdx Sound from an UncivSound
      * @param sound The sound to fetch
@@ -139,6 +140,7 @@ object SoundPlayer {
         val fileName = sound.fileName
         for (modFolder in getFolders()) {
             for (extension in SupportedExtensions.entries) {
+                if (extension == SupportedExtensions.ogg && !UncivGame.Current.platformCapabilities.oggAudio) continue
                 val path = "${modFolder}sounds$separator$fileName.${extension.name}"
                 val localFile = UncivGame.Current.files.getLocalFile(path)
                 if (localFile.exists()) return localFile

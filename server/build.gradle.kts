@@ -15,7 +15,7 @@ val assetsDir = file("../android/assets")
 val deployFolder = file("../deploy")
 
 // See https://github.com/libgdx/libgdx/wiki/Starter-classes-and-configuration#common-issues
-// and https://github.com/yairm210/Unciv/issues/5679
+// and https://github.com/jerry8870/Unciv4iOS
 val jvmArgsForMac = listOf("-XstartOnFirstThread", "-Djava.awt.headless=true")
 tasks.register<JavaExec>("run") {
     jvmArgs = mutableListOf<String>()

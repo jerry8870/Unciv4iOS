@@ -46,6 +46,7 @@ import com.unciv.models.ruleset.unit.Promotion
 import com.unciv.models.ruleset.unit.UnitType
 import com.unciv.ui.components.input.KeyboardBinding
 import com.unciv.utils.Log
+import com.unciv.utils.RoboVMCompatibleLinkedHashMap
 import com.unciv.utils.debug
 import com.unciv.utils.isRunFromJar
 import java.io.File
@@ -358,7 +359,7 @@ object TranslationFileWriter {
         private val ruleset: Ruleset,
         jsonsFolder: FileHandle,
         fileFilter: (File) -> Boolean
-    ): LinkedHashMap<String, MutableSet<String>>() {
+    ): RoboVMCompatibleLinkedHashMap<String, MutableSet<String>>() {
         // Using LinkedHashMap (instead of HashMap) is important to maintain the order of sections in the translation file
 
         constructor(baseRuleset: BaseRuleset) : this(

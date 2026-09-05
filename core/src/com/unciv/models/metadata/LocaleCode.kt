@@ -83,7 +83,7 @@ enum class LocaleCode(
     Zulu("zu-ZA")
     ;
 
-    @Readonly fun locale(): Locale = Locale.forLanguageTag(languageTag)
+    @Readonly fun locale(): Locale = UncivGame.Current.getLocaleFromLanguageTag(languageTag)
     @Readonly fun fastlaneFolder(): String = this.fastlaneFolder ?: locale().language
     @Readonly fun languageName(): String = this.languageName ?: name
 

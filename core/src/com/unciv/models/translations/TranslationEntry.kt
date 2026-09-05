@@ -1,6 +1,6 @@
 package com.unciv.models.translations
 
-import java.util.HashMap
+import com.unciv.utils.RoboVMCompatibleHashMap
 
 /**
  *  One 'translatable' string
@@ -11,4 +11,4 @@ import java.util.HashMap
  *  @property values:   The translations
  *  @see      Translations
  */
-class TranslationEntry(val entry: String) : HashMap<String, String>()
+class TranslationEntry(val entry: String) : RoboVMCompatibleHashMap<String, String>()

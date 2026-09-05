@@ -1,0 +1,236 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000000000000000000001 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = B00000000000000000000011 /* main.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B00000000000000000000010 /* UncivIOSPOC.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UncivIOSPOC.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B00000000000000000000011 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B00000000000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B00000000000000000000030 = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000031 /* Bootstrap */,
+				B00000000000000000000032 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B00000000000000000000031 /* Bootstrap */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000011 /* main.c */,
+			);
+			path = Bootstrap;
+			sourceTree = "<group>";
+		};
+		B00000000000000000000032 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B00000000000000000000010 /* UncivIOSPOC.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		B00000000000000000000040 /* UncivRuntime */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B00000000000000000000070 /* Build configuration list for PBXNativeTarget "UncivRuntime" */;
+			buildPhases = (
+				B00000000000000000000021 /* Sources */,
+				B00000000000000000000020 /* Frameworks */,
+				B00000000000000000000022 /* Resources */,
+				B00000000000000000000023 /* Overlay RoboVM application */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = UncivRuntime;
+			productName = UncivIOSPOC;
+			productReference = B00000000000000000000010 /* UncivIOSPOC.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B00000000000000000000050 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					B00000000000000000000040 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+				};
+			};
+			buildConfigurationList = B00000000000000000000071 /* Build configuration list for PBXProject "UncivRuntime" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B00000000000000000000030;
+			productRefGroup = B00000000000000000000032 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B00000000000000000000040 /* UncivRuntime */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B00000000000000000000022 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B00000000000000000000023 /* Overlay RoboVM application */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Overlay RoboVM application";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\n\nsource_app=\"${SRCROOT}/../build/xcode-runtime/UncivIOSPOC.app\"\ndestination_app=\"${TARGET_BUILD_DIR}/${FULL_PRODUCT_NAME}\"\nsource_plist=\"${source_app}/Info.plist\"\n\n[ -d \"${source_app}\" ] || { echo \"error: Prebuild the RoboVM simulator app at ${source_app}\" >&2; exit 1; }\n[ -f \"${source_plist}\" ] || { echo \"error: Missing RoboVM Info.plist at ${source_plist}\" >&2; exit 1; }\n\nbundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' \"${source_plist}\")\nexecutable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' \"${source_plist}\")\nplatform=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleSupportedPlatforms:0' \"${source_plist}\")\n\n[ \"${bundle_id}\" = \"${PRODUCT_BUNDLE_IDENTIFIER}\" ] || { echo \"error: RoboVM bundle ID ${bundle_id} does not match ${PRODUCT_BUNDLE_IDENTIFIER}\" >&2; exit 1; }\n[ \"${executable}\" = \"${EXECUTABLE_NAME}\" ] || { echo \"error: RoboVM executable ${executable} does not match ${EXECUTABLE_NAME}\" >&2; exit 1; }\n[ \"${platform}\" = \"iPhoneSimulator\" ] || { echo \"error: RoboVM app is for ${platform}, not iPhoneSimulator\" >&2; exit 1; }\n[ -x \"${source_app}/${executable}\" ] || { echo \"error: Missing RoboVM executable ${source_app}/${executable}\" >&2; exit 1; }\n\n/bin/mkdir -p \"${destination_app}\"\n/usr/bin/rsync -a --delete --exclude '/_CodeSignature/' \"${source_app}/\" \"${destination_app}/\"\n/bin/rm -rf \"${destination_app}/_CodeSignature\"\n\nif [ -d \"${destination_app}/Frameworks\" ]; then\n    for framework in \"${destination_app}\"/Frameworks/*.framework; do\n        [ -d \"${framework}\" ] || continue\n        /usr/bin/codesign --force --sign - --timestamp=none \"${framework}\"\n    done\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B00000000000000000000021 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B00000000000000000000060 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				ENTITLEMENTS_DESTINATION = __entitlements;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aishuati.unciv;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				PRODUCT_NAME = UncivIOSPOC;
+				SDKROOT = iphonesimulator;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B00000000000000000000061 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GENERATE_INFOPLIST_FILE = YES;
+				ENTITLEMENTS_DESTINATION = __entitlements;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aishuati.unciv;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = UncivIOSPOC;
+				SDKROOT = iphonesimulator;
+				SUPPORTED_PLATFORMS = iphonesimulator;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		B00000000000000000000062 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		B00000000000000000000063 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B00000000000000000000070 /* Build configuration list for PBXNativeTarget "UncivRuntime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B00000000000000000000060 /* Debug */,
+				B00000000000000000000061 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B00000000000000000000071 /* Build configuration list for PBXProject "UncivRuntime" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B00000000000000000000062 /* Debug */,
+				B00000000000000000000063 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B00000000000000000000050 /* Project object */;
+}

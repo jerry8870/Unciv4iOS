@@ -6,7 +6,7 @@ import com.unciv.logic.HolidayDates.getHolidayByDate
 import com.unciv.logic.HolidayDates.getHolidayByYear
 import org.junit.Assert
 import org.junit.Test
-import java.time.LocalDate
+import org.threeten.bp.LocalDate
 
 class HolidayDatesTest {
     @Test

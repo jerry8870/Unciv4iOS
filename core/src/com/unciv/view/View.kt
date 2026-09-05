@@ -19,7 +19,7 @@ import yairm210.purity.annotations.Readonly
  *    - Only objects under the user's control should have state-changing functions - civ, city, unit
  * - Retain minimal API - anything the UI can derive from existing calls should not be part of the view
  * 
- * See also https://github.com/yairm210/Unciv/issues/15280 and https://medium.com/@yairm210/game-interfaces-data-access-and-action-validity-1760834be165
+ * See also https://github.com/jerry8870/Unciv4iOS and https://medium.com/@yairm210/game-interfaces-data-access-and-action-validity-1760834be165
  * */
 open class View<T>(protected val wrapped: T,
                    /** The civ we're viewing as.

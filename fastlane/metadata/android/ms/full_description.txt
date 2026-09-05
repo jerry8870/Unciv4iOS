@@ -1,0 +1,13 @@
+Pelaksanaan semula sumber terbuka bagi permainan pembinaan tamadun paling terkenal sepanjang zaman — pantas dan kecil!
+
+Bina tamadun anda, selidik teknologi, luaskan bandar anda dan kalahkan musuh anda!
+
+Ada permintaan atau pepijat? Mahu membantu pembangunan? Senarai tugasan aplikasi terdapat di https://github.com/jerry8870/Unciv4iOS
+
+Ada soalan atau komen? Sertai kami di Discord: https://discord.gg/bjrB4Xw ;)
+
+Mahu membantu menterjemahkan permainan ke dalam bahasa anda? Lihat https://yairm210.github.io/Unciv/Translating/Translating/
+
+Dunia menanti! Adakah anda akan membina tamadun anda menjadi sebuah empayar yang mampu bertahan menghadapi ujian masa?
+
+Kebenaran ‘akses rangkaian penuh’ diperlukan untuk muat turun yang dimulakan oleh pengguna dan ciri berbilang pemain. Semua kebenaran lain yang disenaraikan disertakan secara automatik oleh API yang digunakan untuk melaksanakan pemberitahuan giliran berbilang pemain. Kebenaran rangkaian digunakan untuk menyenaraikan mod, memuat turun mod dan muzik, serta memuat naik/memuat turun permainan berbilang pemain. Unciv tidak memulakan sebarang komunikasi internet yang lain.

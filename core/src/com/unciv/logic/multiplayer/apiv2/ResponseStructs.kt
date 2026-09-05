@@ -6,7 +6,7 @@ package com.unciv.logic.multiplayer.apiv2
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.time.Instant
+import org.threeten.bp.Instant
 import java.util.UUID
 
 /**
@@ -327,7 +327,19 @@ data class GetLobbyResponse(
     @SerialName("password")
     val hasPassword: Boolean,
     val owner: AccountResponse
-)
+) {
+    override fun hashCode(): Int {
+        var result = uuid.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + maxPlayers
+        result = 31 * result + currentPlayers.hashCode()
+        result = 31 * result + chatRoomUUID.hashCode()
+        result = 31 * result + createdAt.hashCode()
+        result = 31 * result + if (hasPassword) 1231 else 1237
+        result = 31 * result + owner.hashCode()
+        return result
+    }
+}
 
 /**
  * A single lobby
@@ -350,7 +362,19 @@ data class LobbyResponse(
     @SerialName("password")
     val hasPassword: Boolean,
     val owner: AccountResponse
-)
+) {
+    override fun hashCode(): Int {
+        var result = uuid.hashCode()
+        result = 31 * result + name.hashCode()
+        result = 31 * result + maxPlayers
+        result = 31 * result + currentPlayers
+        result = 31 * result + chatRoomUUID.hashCode()
+        result = 31 * result + createdAt.hashCode()
+        result = 31 * result + if (hasPassword) 1231 else 1237
+        result = 31 * result + owner.hashCode()
+        return result
+    }
+}
 
 /**
  * The account data
@@ -367,6 +391,14 @@ data class OnlineAccountResponse(
     val displayName: String
 ) {
     fun to() = AccountResponse(uuid = uuid, username = username, displayName = displayName)
+
+    override fun hashCode(): Int {
+        var result = if (online) 1231 else 1237
+        result = 31 * result + uuid.hashCode()
+        result = 31 * result + username.hashCode()
+        result = 31 * result + displayName.hashCode()
+        return result
+    }
 }
 
 /**

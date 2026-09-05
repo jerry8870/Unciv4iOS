@@ -1,9 +1,17 @@
-Bản tái hiện mã nguồn mở của trò chơi xây dựng nền văn minh nổi tiếng nhất từ ​​trước đến nay - nhanh, nhỏ, không có quảng cáo, miễn phí vĩnh viễn!
+Bản tái hiện mã nguồn mở của trò chơi xây dựng nền văn minh nổi tiếng nhất từ ​​trước đến nay - nhanh và nhỏ!
 
 Xây dựng nền văn minh của bạn, nghiên cứu công nghệ, mở rộng các thành phố của bạn và đánh bại kẻ thù của bạn!
 
-Yêu cầu? Báo lỗi? https://github.com/yairm210/UnCiv/issues
+Bạn có yêu cầu, phát hiện lỗi hoặc muốn hỗ trợ phát triển? Danh sách việc cần làm của ứng dụng có tại https://github.com/jerry8870/Unciv4iOS
+
+Bạn có câu hỏi hoặc góp ý? Hãy tham gia Discord của chúng tôi tại https://discord.gg/bjrB4Xw ;)
 
 Fanpage Việt Nam https://www.facebook.com/UnCivVietNam/
 
 Group https://www.facebook.com/groups/unciv
+
+Bạn muốn giúp dịch trò chơi sang ngôn ngữ của mình? Xem hướng dẫn tại https://yairm210.github.io/Unciv/Translating/Translating/
+
+Thế giới đang chờ đợi! Bạn có thể xây dựng nền văn minh của mình thành một đế chế trường tồn với thời gian không?
+
+Quyền "truy cập mạng đầy đủ" là cần thiết cho các lượt tải xuống do người dùng khởi tạo và tính năng nhiều người chơi. Tất cả các quyền khác được liệt kê đều do API dùng để thông báo lượt chơi nhiều người tự động thêm vào. Quyền mạng chỉ được dùng để liệt kê và tải xuống bản mod, tải nhạc, cũng như tải lên hoặc tải xuống các ván chơi nhiều người. Unciv không chủ động thực hiện bất kỳ kết nối Internet nào khác.

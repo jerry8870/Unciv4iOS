@@ -6,7 +6,7 @@ import io.ktor.client.request.header
 import io.ktor.http.CookieEncoding
 import io.ktor.http.HttpHeaders
 import io.ktor.http.encodeCookieValue
-import java.time.Instant
+import org.threeten.bp.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 /**

@@ -45,8 +45,8 @@ import yairm210.purity.annotations.Cache
 import yairm210.purity.annotations.Readonly
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.time.Duration
-import java.time.Instant
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -160,7 +160,7 @@ class GameInfo : IsPartOfGameInfoSerialization, HasGameInfoSerializationVersion 
 
     @Readonly
     fun isUnavailableBySettingsCached(obj: IHasUniques): Boolean =
-        settingsUnavailability.computeIfAbsent(obj) { it.isUnavailableBySettings(this) }
+        settingsUnavailability.getOrPut(obj) { obj.isUnavailableBySettings(this) }
 
     @Transient
     lateinit var speed: Speed
@@ -178,6 +178,10 @@ class GameInfo : IsPartOfGameInfoSerialization, HasGameInfoSerializationVersion 
 
     @Transient
     lateinit var ruleset: Ruleset
+
+    /** A game can briefly exist without transients while it is being restored from serialized data. */
+    @Readonly
+    fun getRulesetOrNull(): Ruleset? = if (this::ruleset.isInitialized) ruleset else null
 
     /** Simulate until any player wins,
      *  or turns exceeds indicated number
@@ -386,7 +390,7 @@ class GameInfo : IsPartOfGameInfoSerialization, HasGameInfoSerializationVersion 
         if (player.isHuman() && player.isAlive()) {
             player.totalTurnTimeSeconds +=
                 Duration.between(Instant.ofEpochMilli(currentTurnStartTime), Instant.now())
-                    .toSeconds().toInt()
+                    .seconds.toInt()
             player.turnsPlayedAsHuman++
         }
         
@@ -824,7 +828,7 @@ class GameInfo : IsPartOfGameInfoSerialization, HasGameInfoSerializationVersion 
     private fun updateCivilizationState():Unit = timeThis("GameInfo.updateCivilizationState") {
         for (civInfo in civilizations.asSequence()
             // update city-state resource first since the happiness of major civ depends on it.
-            // See issue: https://github.com/yairm210/Unciv/issues/7781
+            // See issue: https://github.com/jerry8870/Unciv4iOS
             .sortedByDescending { it.isCityState }
         ) {
             for (unit in civInfo.units.getCivUnits())

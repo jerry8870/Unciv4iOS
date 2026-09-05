@@ -1,6 +1,7 @@
 package com.unciv.models.stats
 
 import com.unciv.models.translations.tr
+import com.unciv.utils.RoboVMCompatibleLinkedHashMap
 import yairm210.purity.annotations.*
 
 /**
@@ -279,7 +280,7 @@ open class Stats(
 }
 
 @InternalState
-class StatMap : LinkedHashMap<String,Stats>() {
+class StatMap : RoboVMCompatibleLinkedHashMap<String,Stats>() {
     fun add(source: String, stats: Stats) {
         // We always clone to avoid touching the mutable stats of uniques
         if (!containsKey(source)) put(source, stats.clone())

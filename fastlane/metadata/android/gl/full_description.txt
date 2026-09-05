@@ -1,8 +1,8 @@
-Unha reimplementación do xogo de construción de civilizacións máis famoso da historia - ¡Rápido», pequeno, sen anuncios, gratis por sempre!
+Unha reimplementación do xogo de construción de civilizacións máis famoso da historia: rápido e pequeno.
 
 ¡Construe a tua civilización, investiga tecnoloxías, expande tuas cidades e derrota aos teus inimigos!
 
- ¿Peticions?¿Erros? A lista de cousas por facer da aplicación é https://github.com/yairm210/Unciv/issues, ¡toda pequena axuda é benvida!
+ ¿Peticions?¿Erros? A lista de cousas por facer da aplicación é https://github.com/jerry8870/Unciv4iOS, ¡toda pequena axuda é benvida!
 
 ¿Preguntas?¿Erros?¿Aburrido? Únetenos en https://discord.gg/bjrB4Xw.
 

@@ -6,6 +6,7 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.JsonReader
+import com.badlogic.gdx.utils.JsonWriter
 import com.badlogic.gdx.utils.SerializationException
 import com.unciv.UncivGame
 import com.unciv.json.fromJsonFile
@@ -23,10 +24,12 @@ import com.unciv.logic.CompatibilityVersion
 import com.unciv.utils.Concurrency
 import com.unciv.logic.GameInfoSerializationVersion
 import com.unciv.logic.HasGameInfoSerializationVersion
+import com.unciv.logic.files.cloud.CloudSaveSync
 import com.unciv.utils.Log
 import com.unciv.utils.debug
 import kotlinx.coroutines.Job
 import java.io.Writer
+import java.security.MessageDigest
 
 const val SAVE_FILES_FOLDER = "SaveFiles"
 private const val MULTIPLAYER_FILES_FOLDER = "MultiplayerGames"
@@ -51,6 +54,8 @@ class UncivFiles(
     }
 
     val autosaves = Autosaves(this)
+
+    var cloudSaveSync: CloudSaveSync = CloudSaveSync.None
 
     //region Helpers
 
@@ -153,7 +158,15 @@ class UncivFiles(
      */
     fun deleteSave(file: FileHandle): Boolean {
         debug("Deleting save %s", file.path())
-        return file.delete()
+        val deleted = file.delete()
+        if (deleted) {
+            try {
+                cloudSaveSync.onLocalDelete(file)
+            } catch (ex: Exception) {
+                Log.error("Could not record local cloud-save deletion", ex)
+            }
+        }
+        return deleted
     }
 
     //endregion
@@ -178,6 +191,12 @@ class UncivFiles(
             debug("Saving GameInfo %s to %s", game.gameId, file.path())
             game.version = CompatibilityVersion.CURRENT_COMPATIBILITY_VERSION
             FileConversions.writeJson(file, game, saveZipped)
+            try {
+                cloudSaveSync.onLocalSave(file, game)
+            } catch (ex: Exception) {
+                // A cloud backup failure must never turn a completed local save into a failure.
+                Log.error("Could not queue cloud-save upload", ex)
+            }
             saveCompletionCallback(null)
         } catch (ex: Exception) {
             saveCompletionCallback(ex)
@@ -426,7 +445,10 @@ class UncivFiles(
         }
 
         /** @throws IncompatibleGameInfoVersionException if the [gameData] was created by a version of this game that is incompatible with the current one. */
-        fun gameInfoFromString(gameData: String): GameInfo {
+        fun gameInfoFromString(
+            gameData: String,
+            validateChecksumBeforeMigrations: Boolean = false,
+        ): GameInfo {
             val fixedData = gameData.trim().replace("\r", "").replace("\n", "")
             val unzippedJson = try {
                 FileConversions.unzip(fixedData)
@@ -441,12 +463,28 @@ class UncivFiles(
                 throw IncompatibleGameInfoVersionException(onlyVersion.version, ex)
             } ?: throw UncivShowableException("The file data seems to be corrupted.")
 
+            if (validateChecksumBeforeMigrations
+                && (gameInfo.checksum.isBlank() || gameInfo.checksum != calculateSerializedChecksum(unzippedJson))
+            ) throw SerializationException("The game checksum is invalid")
+
             if (gameInfo.version > CompatibilityVersion.CURRENT_COMPATIBILITY_VERSION) {
                 // this means there wasn't an immediate error while serializing, but this version will cause other errors later down the line
                 throw IncompatibleGameInfoVersionException(gameInfo.version)
             }
             gameInfo.setTransients()
             return gameInfo
+        }
+
+        /** Validates the bytes represented by the received JSON instead of a deserialized [GameInfo].
+         *  Re-serializing a game can change HashMap iteration order and falsely invalidate the checksum. */
+        private fun calculateSerializedChecksum(serializedGame: String): String {
+            val unsignedGame = JsonReader().parse(serializedGame).apply {
+                remove("checksum")
+            }.toJson(JsonWriter.OutputType.json)
+            val bytes = MessageDigest
+                .getInstance("SHA-1")
+                .digest(unsignedGame.toByteArray(Charsets.UTF_8))
+            return FileConversions.encode(bytes)
         }
 
         /**
@@ -521,7 +559,7 @@ class Autosaves(val files: UncivFiles) {
         return job
     }
 
-    fun autoSave(gameInfo: GameInfo, nextTurn: Boolean = false) {
+    fun autoSave(gameInfo: GameInfo, nextTurn: Boolean = false): Boolean {
         // get GameSettings to check the maxAutosavesStored in the autoSave function
         val settings = files.getGeneralSettings()
 
@@ -529,10 +567,10 @@ class Autosaves(val files: UncivFiles) {
             files.saveGame(gameInfo, AUTOSAVE_FILE_NAME)
         } catch (oom: OutOfMemoryError) {
             Log.error("Ran out of memory during autosave", oom)
-            return  // not much we can do here
+            return false  // not much we can do here
         }
 
-        if (!nextTurn) return
+        if (!nextTurn) return true
 
         // keep auto-saves for the last `settings.maxAutosavesStored` turns
         val newAutosaveFile = files.pathToFileHandle(SAVE_FILES_FOLDER)
@@ -540,6 +578,7 @@ class Autosaves(val files: UncivFiles) {
         files.getSave(AUTOSAVE_FILE_NAME).copyTo(newAutosaveFile)
 
         purgeOldAutosaves(settings.maxAutosavesStored)
+        return true
     }
 
     private fun purgeOldAutosaves(maxAutosavesStored: Int) {

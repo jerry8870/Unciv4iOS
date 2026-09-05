@@ -22,6 +22,7 @@ import com.unciv.ui.components.fonts.Fonts
 import com.unciv.ui.components.input.onClick
 import com.unciv.ui.images.IconCircleGroup
 import com.unciv.ui.screens.basescreen.BaseScreen
+import java.util.Collections
 
 
 /**
@@ -173,7 +174,7 @@ class SortableGrid<IT, ACT, CT: ISortableGridContentProvider<IT, ACT>> (
         val sortedData = when(sortState.direction) {
             SortDirection.None -> data.asSequence()
             SortDirection.Ascending -> data.asSequence().sortedWith(comparator)
-            SortDirection.Descending -> data.asSequence().sortedWith(comparator.reversed())
+            SortDirection.Descending -> data.asSequence().sortedWith(Collections.reverseOrder(comparator))
         }
 
         val cellsToEqualize = mutableListOf<Cell<Actor>>()

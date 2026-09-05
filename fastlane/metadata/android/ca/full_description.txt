@@ -1,8 +1,8 @@
-Una reimplementació del joc de construcció de civilitzacions més famós ‒ ràpid, petit, sense anuncis i gratuït!
+Una reimplementació del joc de construcció de civilitzacions més famós ‒ ràpid i petit!
 
 Construïu la vostra civilització, investigueu tecnologies, expandiu les ciutats i derroteu els enemics!
 
-Si teniu suggeriments o trobeu algun error, ho podeu comunicar a la <a href="https://github.com/yairm210/Unciv/issues">llista de problemes de l’aplicació de GitHub</a>. Qualsevol ajuda, per petita que sigui, serà benvinguda!
+Si teniu suggeriments o trobeu algun error, ho podeu comunicar a la <a href="https://github.com/jerry8870/Unciv4iOS">llista de problemes de l’aplicació de GitHub</a>. Qualsevol ajuda, per petita que sigui, serà benvinguda!
 
 Uniu-vos al <a href="https://discord.gg/bjrB4Xw">canal del Discord</a> si teniu preguntes, comentaris o esteu avorrits.
 

@@ -10,8 +10,8 @@ import com.unciv.ui.components.extensions.format
 import com.unciv.ui.components.input.onChange
 import com.unciv.ui.screens.basescreen.BaseScreen
 import com.unciv.utils.toGdxArray
-import java.time.Duration
-import java.time.temporal.ChronoUnit
+import org.threeten.bp.Duration
+import org.threeten.bp.temporal.ChronoUnit
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KProperty0
 

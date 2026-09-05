@@ -18,6 +18,27 @@ interface ScreenMode {
     fun hasUserSelectableSize(): Boolean = false
 }
 
+data class SafeInsets(
+    val left: Int = 0,
+    val top: Int = 0,
+    val right: Int = 0,
+    val bottom: Int = 0
+) {
+    fun applyTo(width: Int, height: Int) = SafeArea(
+        x = left,
+        y = bottom,
+        width = width - left - right,
+        height = height - top - bottom
+    )
+}
+
+data class SafeArea(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int
+)
+
 interface PlatformDisplay {
     fun setScreenMode(id: Int, settings: GameSettings) {}
     fun getScreenModes(): Map<Int, ScreenMode> = hashMapOf()
@@ -32,6 +53,8 @@ interface PlatformDisplay {
 
     fun hasSystemUiVisibility(): Boolean = false
     fun setSystemUiVisibility(hide: Boolean) {}
+
+    fun getSafeInsets() = SafeInsets()
 }
 
 object Display {
@@ -50,4 +73,6 @@ object Display {
 
     fun hasSystemUiVisibility() = platform.hasSystemUiVisibility()
     fun setSystemUiVisibility(hide: Boolean) = platform.setSystemUiVisibility(hide)
+
+    fun getSafeArea(width: Int, height: Int) = platform.getSafeInsets().applyTo(width, height)
 }

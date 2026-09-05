@@ -17,6 +17,7 @@ import com.unciv.models.UnitActionType
 import com.unciv.models.ruleset.unique.UniqueType
 import com.unciv.ui.components.UnitMovementMemoryType
 import com.unciv.utils.Log
+import com.unciv.utils.RoboVMCompatibleLinkedHashMap
 import com.unciv.utils.getOrPut
 import yairm210.purity.annotations.Cache
 import yairm210.purity.annotations.InternalState
@@ -1003,7 +1004,7 @@ class PathfindingCache(private val unit: MapUnit) {
 }
 
 /** Should contain current unit location even when it has no movement */
-class PathsToTilesWithinTurn : LinkedHashMap<Tile, UnitMovement.ParentTileAndTotalMovement>() {
+class PathsToTilesWithinTurn : RoboVMCompatibleLinkedHashMap<Tile, UnitMovement.ParentTileAndTotalMovement>() {
     fun getPathToTile(tile: Tile): List<Tile> {
         if (!containsKey(tile)) {
             Log.debug("PathsToTilesWithinTurn#getPathToTile does not contain $tile: $this")

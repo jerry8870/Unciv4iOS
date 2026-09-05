@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.utils.Base64Coder
 import com.unciv.Constants
 import com.unciv.UncivGame
+import com.unciv.logic.UncivShowableException
 import com.unciv.logic.multiplayer.FriendList
 import com.unciv.logic.multiplayer.chat.ChatWebSocket
 import com.unciv.models.UncivSound
@@ -16,12 +17,12 @@ import com.unciv.ui.components.fonts.Fonts
 import com.unciv.ui.components.input.KeyboardBindings
 import com.unciv.ui.screens.worldscreen.NotificationsScroll
 import com.unciv.utils.Display
+import com.unciv.utils.Log
 import com.unciv.utils.ScreenOrientation
-import java.awt.Rectangle
 import yairm210.purity.annotations.Readonly
 import java.text.Collator
 import java.text.NumberFormat
-import java.time.Duration
+import org.threeten.bp.Duration
 import java.util.Locale
 
 /** Settings that apply across all games, stored in GameSettings.json */
@@ -277,8 +278,6 @@ class GameSettings {
      *  retrieving a valid position from our upstream libraries while the window is maximized or iconified has proven tricky so far.
      */
     data class WindowState(val width: Int = 900, val height: Int = 600) {
-        constructor(bounds: Rectangle) : this(bounds.width, bounds.height)
-
         companion object {
             /** Our choice of minimum window width */
             const val minimumWidth = 120
@@ -303,14 +302,6 @@ class GameSettings {
             )
         }
 
-        /**
-         *  Constrains the dimensions of `this` [WindowState] to be within [minimumWidth] x [minimumHeight] to `maximumWidth` x `maximumHeight`.
-         *  @param maximumWindowBounds provides maximum sizes
-         *  @return `this` unchanged if it is within valid limits, otherwise a new WindowState that is.
-         *  @see coerceIn
-         */
-        fun coerceIn(maximumWindowBounds: Rectangle) =
-            coerceIn(maximumWindowBounds.width, maximumWindowBounds.height)
     }
 
     enum class ScreenSize(
@@ -347,11 +338,25 @@ class GameSettings {
     //region Multiplayer-specific
 
     class GameSettingsMultiplayer {
+        private fun restartChatWebSocket() {
+            if (UncivGame.isCurrentInitialized()
+                    && UncivGame.Current.platformCapabilities.onlineMultiplayer
+                    && UncivGame.Current.platformCapabilities.multiplayerChat) {
+                ChatWebSocket.restart(force = true)
+            }
+        }
+
+        @Readonly
+        private fun securePasswordPlatform() =
+            if (UncivGame.isCurrentInitialized()
+                && UncivGame.Current.platformCapabilities.secureMultiplayerServerPasswords
+            ) UncivGame.Current else null
+
         private var userId = ""
         fun getUserId() = userId
         fun setUserId(value: String) {
             if (userId.isNotEmpty() && userId != value) {
-                ChatWebSocket.restart(force = true)
+                restartChatWebSocket()
             }
             userId = value
         }
@@ -361,27 +366,93 @@ class GameSettings {
          * But do remember to call [ChatWebSocket.restart] with `force = true` whenever required.
          */
         private val passwords = mutableMapOf<String, String>()
+        var securePasswordMigrationFailed = false
+            private set
         @Readonly
-        fun getPassword(serverUrl: String) = passwords[serverUrl]
-        @Readonly
-        fun getCurrentServerPassword() = passwords[server]
-        fun setCurrentServerPassword(password: String) {
-            val oldPassword = passwords[server]
-            if (oldPassword != null && oldPassword != password) {
-                ChatWebSocket.restart(force = true)
+        fun getPassword(serverUrl: String): String? {
+            val securePlatform = securePasswordPlatform()
+            return if (securePlatform != null) {
+                credentialKeys(serverUrl).firstNotNullOfOrNull {
+                    securePlatform.getMultiplayerServerPassword(it)
+                }
+            } else {
+                credentialKeys(serverUrl).firstNotNullOfOrNull(passwords::get)
             }
-            passwords[server] = password
+        }
+        @Readonly
+        fun getCurrentServerPassword() = getPassword(server)
+        fun setCurrentServerPassword(password: String) = setPassword(server, password)
+        fun setPassword(serverUrl: String, password: String) {
+            val oldPassword = getPassword(serverUrl)
+            if (serverUrl == server && oldPassword != null && oldPassword != password) {
+                restartChatWebSocket()
+            }
+
+            val securePlatform = securePasswordPlatform()
+            val credentialKey = canonicalCredentialKey(serverUrl)
+            if (securePlatform != null) {
+                if (!securePlatform.setMultiplayerServerPassword(credentialKey, password)) {
+                    throw UncivShowableException("Could not store the multiplayer password securely.")
+                }
+                credentialKeys(serverUrl).forEach(passwords::remove)
+                return
+            }
+            credentialKeys(serverUrl).forEach(passwords::remove)
+            passwords[credentialKey] = password
+        }
+
+        /** Moves legacy plaintext settings into platform secure storage and removes every plaintext copy. */
+        fun migratePasswordsToSecureStorage(): Boolean {
+            val securePlatform = securePasswordPlatform() ?: return false
+            if (passwords.isEmpty()) return false
+
+            var migrationFailed = false
+            for ((serverUrl, password) in passwords) {
+                val credentialKey = canonicalCredentialKey(serverUrl)
+                val canonicalPassword = try {
+                    securePlatform.getMultiplayerServerPassword(credentialKey)
+                } catch (_: Exception) {
+                    null
+                }
+                val existingPassword = canonicalPassword ?: try {
+                    credentialKeys(serverUrl).firstNotNullOfOrNull {
+                        securePlatform.getMultiplayerServerPassword(it)
+                    }
+                } catch (_: Exception) {
+                    null
+                }
+                if (existingPassword == null
+                    && !securePlatform.setMultiplayerServerPassword(credentialKey, password)
+                ) {
+                    migrationFailed = true
+                } else if (existingPassword != null && canonicalPassword == null) {
+                    // Older builds could use a trailing slash as the Keychain account. Keep reads
+                    // compatible, and opportunistically establish the canonical account.
+                    securePlatform.setMultiplayerServerPassword(credentialKey, existingPassword)
+                }
+            }
+            passwords.clear()
+            securePasswordMigrationFailed = migrationFailed
+            if (migrationFailed) {
+                Log.error("Could not migrate a multiplayer password to secure storage; reauthentication is required.")
+            }
+            return true
+        }
+
+        fun dismissSecurePasswordMigrationWarning() {
+            securePasswordMigrationFailed = false
         }
 
         @Suppress("unused")  // @GGuenni knows what he intended with this field
         var userName: String = ""
 
         private var server = Constants.uncivXyzServer
+        @Readonly
         fun getServer() = server
         fun setServer(value: String) {
             if (server != value) {
                 server = value
-                ChatWebSocket.restart(force = true)
+                restartChatWebSocket()
             }
         }
 
@@ -396,10 +467,19 @@ class GameSettings {
         var otherGameTurnNotificationSound: UncivSound = UncivSound.Silent
         var hideDropboxWarning = false
 
-        fun getAuthHeader(): String {
-            val serverPassword = passwords[server] ?: ""
+        fun getAuthHeader(serverUrl: String = server): String {
+            val serverPassword = getPassword(serverUrl) ?: ""
             val preEncodedAuthValue = "$userId:$serverPassword"
             return "Basic ${Base64Coder.encodeString(preEncodedAuthValue)}"
+        }
+
+        @Readonly
+        private fun canonicalCredentialKey(serverUrl: String) = serverUrl.trimEnd('/')
+
+        @Readonly
+        private fun credentialKeys(serverUrl: String): List<String> {
+            val canonical = canonicalCredentialKey(serverUrl)
+            return listOf(canonical, serverUrl, "$canonical/").distinct()
         }
     }
 

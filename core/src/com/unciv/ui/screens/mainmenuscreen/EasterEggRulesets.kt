@@ -8,7 +8,7 @@ import com.unciv.models.ruleset.Ruleset
 import com.unciv.models.ruleset.tile.Terrain
 import com.unciv.models.ruleset.tile.TerrainType
 import com.unciv.ui.screens.civilopediascreen.FormattedLine
-import java.time.Month
+import org.threeten.bp.Month
 
 object EasterEggRulesets {
     fun MapParameters.modifyForEasterEgg() {

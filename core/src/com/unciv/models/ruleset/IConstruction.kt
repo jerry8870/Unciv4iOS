@@ -124,8 +124,10 @@ interface INonPerpetualConstruction : IConstruction, INamed, IHasUniques {
 
     @Readonly
     override fun requiredResources(state: GameContext): Set<String> {
-        return getResourceRequirementsPerTurn(state).keys +
-                getMatchingUniques(UniqueType.CostsResources, state).map { it.params[1] }
+        val resources = getResourceRequirementsPerTurn(state).keys.toMutableSet()
+        for (unique in getMatchingUniques(UniqueType.CostsResources, state))
+            resources += unique.params[1]
+        return resources
     }
     
     @Readonly

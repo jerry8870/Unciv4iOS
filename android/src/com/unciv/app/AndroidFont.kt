@@ -158,7 +158,7 @@ class AndroidFont : FontImplementation {
 
         // Corrections: Some Android fonts report bullshit
         // Examples: "ComingSoon" and "NotoSansSymbols" fonts on Android "S"
-        // See https://github.com/yairm210/Unciv/issues/10308
+        // See https://github.com/jerry8870/Unciv4iOS
 
         // Hardcode values for the worst of them - I've seen NotoSansSymbols returning (42.4, 11.1, 68.1, 11.1),
         // or (53.4, 14.6, 117.7, 28.8): looks off, or (53.4, 14.6, 53.4, -11.1) - top below ascent

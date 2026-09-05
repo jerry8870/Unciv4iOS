@@ -32,16 +32,15 @@ import com.unciv.ui.popups.ConfirmPopup
 import com.unciv.ui.screens.pickerscreens.PickerScreen
 import com.unciv.utils.Concurrency
 import com.unciv.utils.Log
+import com.unciv.utils.ONLINE_MOD_MANAGEMENT_UNAVAILABLE
 import com.unciv.utils.launchOnGLThread
 import java.io.FileNotFoundException
-import java.nio.file.attribute.DosFileAttributes
 import java.util.Date
-import kotlin.io.path.Path
-import kotlin.io.path.readAttributes
 
 
 abstract class LoadOrSaveScreen(
-    fileListHeaderText: String? = null
+    fileListHeaderText: String? = null,
+    saveButtonFontSize: Int = Constants.defaultFontSize,
 ) : PickerScreen(disableScroll = true) {
 
     abstract fun onExistingSaveSelected(saveGameFile: FileHandle)
@@ -50,7 +49,7 @@ abstract class LoadOrSaveScreen(
     protected var selectedSave: FileHandle? = null
         private set
 
-    private val savesScrollPane = VerticalFileListScrollPane()
+    protected val savesScrollPane = VerticalFileListScrollPane(buttonFontSize = saveButtonFontSize)
     protected val rightSideTable = Table()
     protected val deleteSaveButton = "Delete save".toTextButton(skin.get("negative", TextButton.TextButtonStyle::class.java))
     protected val showAutosavesCheckbox = CheckBox("Show autosaves".tr(), skin)
@@ -91,6 +90,7 @@ abstract class LoadOrSaveScreen(
     }
 
     open fun resetWindowState() {
+        selectedSave = null
         updateShownSaves(showAutosavesCheckbox.isChecked)
         deleteSaveButton.disable()
         descriptionLabel.setText("")
@@ -99,11 +99,16 @@ abstract class LoadOrSaveScreen(
     private fun onDeleteClicked() {
         if (selectedSave == null) return
         val name = selectedSave!!.name()
-        ConfirmPopup(this, "Are you sure you want to delete this save?", "Delete save") {
+        val localOnly = game.files.cloudSaveSync.isSupported
+        val confirmation = if (localOnly)
+            "Are you sure you want to delete this save from this device? It will remain in iCloud."
+        else "Are you sure you want to delete this save?"
+        ConfirmPopup(this, confirmation, "Delete save") {
             val result = try {
                 if (game.files.deleteSave(selectedSave!!)) {
                     resetWindowState()
-                    "[$name] deleted successfully."
+                    if (localOnly) "[$name] deleted from this device."
+                    else "[$name] deleted successfully."
                 } else {
                     "Failed to delete [$name]."
                 }
@@ -140,16 +145,18 @@ abstract class LoadOrSaveScreen(
                     .filter { it.isPlayerCivilization() }.joinToString { it.civName.tr() }
                 val mods = if (game.gameParameters.mods.isEmpty()) ""
                     else "\n{Mods:} " + game.gameParameters.mods.joinToString()
+                val onlineTag = if (game.gameParameters.isOnlineMultiplayer) "\n{Online Multiplayer}" else ""
 
                 // Format result for textToSet
                 "${saveGameFile.name()}\n{Saved at}: ${savedAt.formatDate()}\n" +
                 "$playerCivNames, ${game.difficulty.tr()}, ${Fonts.turn}${game.turns}\n" +
-                "{Base ruleset:} ${game.gameParameters.baseRuleset}$mods"
+                "{Base ruleset:} ${game.gameParameters.baseRuleset}$mods$onlineTag"
             } catch (_: Exception) {
                 "Could not load game!"
             }
 
             launchOnGLThread {
+                if (!isCurrentSaveInfoSelection(selectedSave, saveGameFile)) return@launchOnGLThread
                 descriptionLabel.setText(textToSet.tr())
             }
         }
@@ -177,15 +184,16 @@ abstract class LoadOrSaveScreen(
             while (cause.cause != null && cause is GdxRuntimeException) cause = cause.cause!!
 
             fun FileHandle.isReadOnly(): Boolean {
-                try {
-                    val attr = Path(file().absolutePath).readAttributes<DosFileAttributes>()
-                    return attr.isReadOnly
-                } catch (_: Throwable) { return false }
+                return try {
+                    file().let { it.exists() && !it.canWrite() }
+                } catch (_: Throwable) {
+                    false
+                }
             }
 
             val isUserFixable = when (cause) {
                 is UncivShowableException -> {
-                    errorText.append(ex.localizedMessage)
+                    errorText.append(cause.localizedMessage)
                     true
                 }
                 is SerializationException -> {
@@ -216,6 +224,11 @@ abstract class LoadOrSaveScreen(
         }
 
         suspend fun loadMissingMods(missingMods: Iterable<String>, onModDownloaded:(String)->Unit, onCompleted:()->Unit) {
+            if (UncivGame.isCurrentInitialized()
+                    && !UncivGame.Current.platformCapabilities.onlineModManagement) {
+                throw UncivShowableException(ONLINE_MOD_MANAGEMENT_UNAVAILABLE)
+            }
+
             // Load mod cache to check for repo information before querying GitHub
             val cachedRepos = UncivGame.Current.files.loadModCache().mapNotNull { it.repo }
             val cachedReposByName = cachedRepos.associateBy { it.name }
@@ -247,3 +260,6 @@ abstract class LoadOrSaveScreen(
         }
     }
 }
+
+fun isCurrentSaveInfoSelection(selectedSave: FileHandle?, loadedSave: FileHandle): Boolean =
+    selectedSave?.path() == loadedSave.path()

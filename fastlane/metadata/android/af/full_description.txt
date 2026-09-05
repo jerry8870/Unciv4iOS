@@ -1,1 +1,13 @@
-'n Herimplementering van die bekendste beskawingsbou-speletjie ooit - vinnig, klein, geen advertensies, gratis vir ewig!
+'n Herimplementering van die bekendste beskawingsbou-speletjie ooit - vinnig en klein!
+
+Bou jou beskawing, ondersoek tegnologieë, brei jou stede uit en verslaan jou vyande!
+
+Versoeke? Foute? Wil jy met ontwikkeling help? Die taaklys vir die toepassing is https://github.com/jerry8870/Unciv4iOS
+
+Vrae? Kommentaar? Sluit by ons aan op Discord by https://discord.gg/bjrB4Xw ;)
+
+Wil jy help om die speletjie in jou taal te vertaal? Sien https://yairm210.github.io/Unciv/Translating/Translating/
+
+Die wêreld wag! Sal jy jou beskawing tot 'n ryk uitbou wat die toets van die tyd sal deurstaan?
+
+Die toestemming vir 'volle netwerktoegang' word vereis vir aflaaie wat deur die gebruiker begin word en vir die multispelerfunksie. Alle ander gelyste toestemmings word outomaties ingesluit deur die API wat gebruik word om multispeler-beurtkennisgewings te implementeer. Netwerktoestemmings word gebruik om modifikasies te lys, modifikasies af te laai, musiek af te laai en multispeler-speletjies op of af te laai. Geen ander internetkommunikasie word deur Unciv geïnisieer nie.

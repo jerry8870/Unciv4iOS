@@ -53,6 +53,7 @@ import com.unciv.ui.screens.modmanager.ModManagementOptions.SortType
 import com.unciv.ui.screens.pickerscreens.PickerScreen
 import com.unciv.utils.Concurrency
 import com.unciv.utils.Log
+import com.unciv.utils.ONLINE_MOD_MANAGEMENT_UNAVAILABLE
 import com.unciv.utils.launchOnGLThread
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -184,7 +185,8 @@ class ModManagementScreen private constructor(
         refreshInstalledModTable()
 
         refreshOnlineModTable() // Refresh table - chances are we have cached data...
-        reloadOnlineMods() //... and still try to get fresh data from online
+        if (game.platformCapabilities.onlineModManagement)
+            reloadOnlineMods() //... and still try to get fresh data from online
     }
 
     private fun initPortrait() {
@@ -723,6 +725,12 @@ class ModManagementScreen private constructor(
         onlineExpanderTab?.setText(newHeaderText)
 
         onlineModsTable.clear()
+        if (!game.platformCapabilities.onlineModManagement) {
+            onlineModsTable.add(ONLINE_MOD_MANAGEMENT_UNAVAILABLE.toLabel(Color.GRAY)).row()
+            onlineModsTable.pack()
+            scrollOnlineMods.actor = onlineModsTable
+            return
+        }
         onlineModsTable.add(getDownloadFromUrlButton()).row()
 
         val filter = optionsManager.getFilter()

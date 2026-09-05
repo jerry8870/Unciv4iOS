@@ -219,7 +219,7 @@ class DiacriticSupport(
     private fun createReplacementChar(joined: String): Char {
         val char = getCurrentFreeCode()
         nextFreeDiacriticReplacementCodepoint--
-        if (nextFreeDiacriticReplacementCodepoint < FontRulesetIcons.UNUSED_CHARACTER_CODES_START.toUInt())
+        if (nextFreeDiacriticReplacementCodepoint.toInt() < FontRulesetIcons.UNUSED_CHARACTER_CODES_START)
             throw IllegalStateException("DiacriticsSupport has exhausted the Unicode private use area")
         fakeAlphabet[char] = joined
         inverseMap[joined] = char

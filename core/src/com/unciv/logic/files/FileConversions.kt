@@ -6,10 +6,14 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.Base64
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
+import kotlin.io.encoding.decodingWith
+import kotlin.io.encoding.encodingWith
 
+@OptIn(ExperimentalEncodingApi::class)
 object FileConversions {
 
     fun zip(data: String): String {
@@ -26,14 +30,14 @@ object FileConversions {
 
     /** Wraps [output]: bytes written to the result are gzip-compressed, then base64-encoded into [output]. */
     private fun zippedOutputStream(output: OutputStream): OutputStream =
-        GZIPOutputStream(Base64.getEncoder().wrap(output))
+        GZIPOutputStream(output.encodingWith(Base64.Default))
 
     /** Wraps [input], which must contain base64-encoded gzip data: bytes read from the result are the decompressed original. */
     private fun unzippedInputStream(input: InputStream): InputStream =
-        GZIPInputStream(Base64.getDecoder().wrap(input))
+        GZIPInputStream(input.decodingWith(Base64.Default))
 
     /** Plain base64 encoding, no gzip - e.g. for encoding a checksum digest as text. */
-    fun encode(bytes: ByteArray): String = Base64.getEncoder().encodeToString(bytes)
+    fun encode(bytes: ByteArray): String = Base64.Default.encode(bytes)
 
     /** Reads [file] as JSON of [type], transparently gunzip+base64-decoding it if that's how it was saved -
      *  otherwise (or if that fails), falls back to reading it as plain JSON text. */

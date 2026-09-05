@@ -14,7 +14,7 @@ The game contains a tutorial to get you started
 
 The most valuable first step to getting involved is engaging with our community: join the [Discord!](https://discord.gg/bjrB4Xw) It's a great place to meet your fellow contributors.
 
-In addition, you can keep track of requests, bugs, and our todo list for the application at the repository's [Issue Tracker](https://github.com/yairm210/Unciv/issues)
+In addition, you can keep track of requests, bugs, and our todo list for the application at the repository's [Issue Tracker](https://github.com/jerry8870/Unciv4iOS)
 
 If you're a developer, you'll probably want to start at the [Getting Started](Developers/Building-Locally.md) page!
 

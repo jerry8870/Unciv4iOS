@@ -1,6 +1,6 @@
 package com.unciv.logic.multiplayer.apiv2
 
-import java.time.Duration
+import org.threeten.bp.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /** Name of the session cookie returned and expected by the server */

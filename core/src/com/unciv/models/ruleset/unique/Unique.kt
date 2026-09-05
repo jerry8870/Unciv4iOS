@@ -21,7 +21,8 @@ class Unique(val text: String, val sourceObjectType: UniqueTarget? = null, val s
      *  - for instance, in the city screen, we call every tile unique for every tile, which can lead to ANRs */
     val placeholderText = text.getPlaceholderText()
     /** Does not include conditional params */
-    val params = text.getPlaceholderParameters()
+    private val originalParams = text.getPlaceholderParameters()
+    val params = originalParams.map { it.withoutLeadingPlusOnInteger() }
     val type = UniqueType.uniqueTypeMap[placeholderText]
     val deprecatedType: DeprecatedUniqueType? = if (type == null) DeprecatedUniqueType.uniqueTypeMap[placeholderText] else null
 
@@ -212,7 +213,7 @@ class Unique(val text: String, val sourceObjectType: UniqueTarget? = null, val s
                 timesParameterWasSeen.add(parameterUnsigned, 1)
                 
                 val positionInDeprecatedUnique = (type?.text ?: deprecatedType!!.text).indexOf("[$parameterUnsigned]")
-                var replacementText = params[parameterNumberInDeprecatedUnique]
+                var replacementText = originalParams[parameterNumberInDeprecatedUnique]
                 if (type == null || UniqueParameterType.Number in type.parameterTypeMap[parameterNumberInDeprecatedUnique]) {
                     // The following looks for a sign just before [amount] and detects replacing "-[-33]" with "[+33]" and similar situations
                     val deprecatedSourceText = type?.text ?: deprecatedType!!.text
@@ -262,3 +263,7 @@ class Unique(val text: String, val sourceObjectType: UniqueTarget? = null, val s
         else -> text.removeConditionals() + modifiers.filter { !it.isHiddenToUsers() }.joinToString(" ", prefix = " ") { "<${it.text}>" }
     }
 }
+
+/** MobiVM's old Integer/Long parsers reject a leading '+', unlike the Java contract. */
+private fun String.withoutLeadingPlusOnInteger(): String =
+    if (length > 1 && first() == '+' && drop(1).all { it in '0'..'9' }) drop(1) else this

@@ -15,6 +15,7 @@ buildscript {
     dependencies {
         classpath(libs.kotlinPlugin)
         classpath(libs.agp)
+        classpath(libs.robovm.gradle.plugin)
     }
 }
 
@@ -172,6 +173,19 @@ if (getSdkPath() != null) {
     }
 }
 
+project(":ios") {
+    apply(plugin = "kotlin")
+    apply(plugin = "robovm")
+
+    dependencies {
+        "implementation"(project(":core"))
+        "implementation"(rootProject.libs.robovm.rt)
+        "implementation"(rootProject.libs.robovm.cocoatouch)
+        "implementation"(project(":ios-backend"))
+        "implementation"(gdxNatives("ios"))
+    }
+}
+
 
 project(":core") {
     apply(plugin = "kotlin")
@@ -181,7 +195,7 @@ project(":core") {
     dependencies {
         "implementation"(rootProject.libs.gdx)
         "implementation"(rootProject.libs.coroutines.core)
-        "implementation"(rootProject.libs.kotlin.reflect)
+        "api"(rootProject.libs.threetenbp)
 
         "implementation"(rootProject.libs.purity.annotations)
 
@@ -198,8 +212,6 @@ project(":core") {
             "implementation"(project(":core"))
 
             "implementation"(rootProject.libs.coroutines.core)
-            "implementation"(rootProject.libs.kotlin.reflect)
-
             "implementation"(rootProject.libs.gdx)
             "implementation"(rootProject.libs.gdx.backend.headless)
             "implementation"(rootProject.libs.gdx.backend.desktop)

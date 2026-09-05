@@ -8,8 +8,9 @@ import com.unciv.json.fromJsonFile
 import com.unciv.json.json
 import com.unciv.models.ruleset.RulesetCache
 import com.unciv.ui.images.ImageGetter
+import com.unciv.utils.RoboVMCompatibleHashMap
 
-object TileSetCache : HashMap<String, TileSet>() {
+object TileSetCache : RoboVMCompatibleHashMap<String, TileSet>() {
 
     fun getCurrent() : TileSet {
         return get(UncivGame.Current.settings.tileSet)!!

@@ -1,8 +1,8 @@
-Eine Neuimplementierung vom berühmtesten Zivilisations-Aufbau-Spiel aller Zeiten. Schnell, klein, ohne Spam und für immer kostenlos!
+Eine Neuimplementierung vom berühmtesten Zivilisations-Aufbau-Spiel aller Zeiten. Schnell und klein!
 
 Baue Deine Zivilisation auf, erforsche Technologien, entwickle Deine Städte und besiege Deine Kontrahenten!
 
-Wünsche? Bugs? Die Liste der offenen Themen findest du auf der <a href="https://github.com/yairm210/Unciv/issues">GitHub Issues - Seite</a> - jede noch so kleine Hilfe ist willkommen!
+Wünsche? Bugs? Die Liste der offenen Themen findest du auf der <a href="https://github.com/jerry8870/Unciv4iOS">GitHub Issues - Seite</a> - jede noch so kleine Hilfe ist willkommen!
 
 Fragen? Kommentare? Einfach nur gelangweilt? Chatte mit uns auf <a href="https://discord.gg/bjrB4Xw">Discord</a>.
 

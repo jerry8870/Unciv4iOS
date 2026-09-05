@@ -168,6 +168,16 @@ open class TabbedPager(
         val growMax: Boolean
     ) {
         constructor(limit: Float) : this(0f, 0f, 0f, limit, true)
+
+        override fun hashCode(): Int {
+            var result = min.hashCode()
+            result = 31 * result + pref.hashCode()
+            result = 31 * result + max.hashCode()
+            result = 31 * result + limit.hashCode()
+            result = 31 * result + if (growMax) 1231 else 1237
+            return result
+        }
+
         companion object {
             fun from(min: Float, max: Float, limit: Float): DimensionMeasurement {
                 if (max == Float.MAX_VALUE)

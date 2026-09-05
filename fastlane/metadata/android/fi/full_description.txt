@@ -1,8 +1,8 @@
-Kaikkien aikojen kuuluisimman sivilisaationrakennuspelin avoimen lähdekoodin uudelleentoteutus - nopea, pieni, ei mainoksia, ilmainen ikuisesti!
+Kaikkien aikojen kuuluisimman sivilisaationrakennuspelin avoimen lähdekoodin uudelleentoteutus - nopea ja pieni!
 
 Rakenna sivilisaatiotasi, tutki teknologioita, laajenna kaupunkejasi ja kukista vihollisesi!
 
-Pyyntöjä? Bugeja? Haluatko auttaa kehityksessä? Tehtävälista sovellukselle on https://github.com/yairm210/Unciv/issues
+Pyyntöjä? Bugeja? Haluatko auttaa kehityksessä? Tehtävälista sovellukselle on https://github.com/jerry8870/Unciv4iOS
 
 Kysymyksiä? Kommentteja? Liity meihin discordissa osoitteessa https://discord.gg/bjrB4Xw ;)
 

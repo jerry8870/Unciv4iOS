@@ -4,9 +4,10 @@ import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonValue
 import com.unciv.logic.IsPartOfGameInfoSerialization
 import com.unciv.ui.screens.victoryscreen.RankingType
+import com.unciv.utils.RoboVMCompatibleHashMap
 
 /** Records for each turn (key of outer map) what the score (value of inner map) was for each RankingType. */
-class CivRankingHistory : HashMap<Int, Map<RankingType, Int>>(), IsPartOfGameInfoSerialization, Json.Serializable {
+class CivRankingHistory : RoboVMCompatibleHashMap<Int, Map<RankingType, Int>>(), IsPartOfGameInfoSerialization, Json.Serializable {
 
     /**
      * Returns a shallow copy of this [CivRankingHistory] instance.

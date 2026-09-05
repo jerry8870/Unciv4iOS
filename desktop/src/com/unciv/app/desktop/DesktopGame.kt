@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.sun.jna.platform.win32.Kernel32Util
 import com.unciv.UncivGame
-import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 
 
@@ -63,4 +62,13 @@ class DesktopGame(config: Lwjgl3ApplicationConfiguration, override var customDat
             null
         }
     }
+
+    override fun getGcCount(): Int = getJvmGcCount()
 }
+
+internal class DesktopConsoleGame : UncivGame(true) {
+    override fun getGcCount(): Int = getJvmGcCount()
+}
+
+private fun getJvmGcCount() =
+    ManagementFactory.getGarbageCollectorMXBeans().sumOf { it.collectionCount }.toInt()

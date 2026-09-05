@@ -34,6 +34,8 @@ data class KeyCharAndCode(val char: Char, val code: Int) {
     /** express keys that only have a keyCode like F1 */
     constructor(code: Int): this(Char.MIN_VALUE, code)
 
+    override fun hashCode(): Int = 31 * char.code + code
+
     //** debug helper, but also used for tooltips */
     override fun toString(): String {
         return when {

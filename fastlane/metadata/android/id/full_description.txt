@@ -1,8 +1,8 @@
-Implementasi ulang bersumber terbuka dari permainan membangun peradaban paling terkenal yang pernah ada - cepat, kecil, tanpa iklan, gratis untuk selamanya!
+Implementasi ulang bersumber terbuka dari permainan membangun peradaban paling terkenal yang pernah ada - cepat dan kecil!
 
 Bangun peradabanmu, teliti teknologi, perluas kotamu dan kalahkan musuhmu!
 
-Permintaan? Kutu? Daftar hal-hal yang akan dilakukan ke depannya ada di https://github.com/yairm210/Unciv/issues
+Permintaan? Kutu? Daftar hal-hal yang akan dilakukan ke depannya ada di https://github.com/jerry8870/Unciv4iOS
 
 Pertanyaan? Komentar? Bergabunglah dengan kami di https://discord.gg/bjrB4Xw.
 

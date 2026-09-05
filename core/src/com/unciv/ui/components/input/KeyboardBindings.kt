@@ -3,6 +3,7 @@ package com.unciv.ui.components.input
 import com.badlogic.gdx.utils.Json
 import com.badlogic.gdx.utils.JsonValue
 import com.unciv.GUI
+import com.unciv.utils.RoboVMCompatibleHashMap
 
 /**
  *  Manage user-configurable keyboard bindings
@@ -10,7 +11,7 @@ import com.unciv.GUI
  *  A primary instance lives in [UncivGame.Current.settings][com.unciv.models.metadata.GameSettings]
  *  and is read/write accessible through the `KeyboardBindings[]` syntax.
  **/
-class KeyboardBindings : HashMap<KeyboardBinding, KeyCharAndCode>(), Json.Serializable {
+class KeyboardBindings : RoboVMCompatibleHashMap<KeyboardBinding, KeyCharAndCode>(), Json.Serializable {
 
     /** this [put] overload helps the Json [Serializer] read method */
     private fun put(element: JsonValue) {

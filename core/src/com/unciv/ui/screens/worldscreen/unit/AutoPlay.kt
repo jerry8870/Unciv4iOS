@@ -5,6 +5,7 @@ import com.unciv.models.metadata.GameSettings
 import com.unciv.ui.screens.worldscreen.WorldScreen
 import com.unciv.utils.Concurrency
 import kotlinx.coroutines.Job
+import java.util.concurrent.atomic.AtomicBoolean
 import yairm210.purity.annotations.Readonly
 
 class AutoPlay(private var autoPlaySettings: GameSettings.GameSettingsAutoPlay) {
@@ -20,6 +21,7 @@ class AutoPlay(private var autoPlaySettings: GameSettings.GameSettingsAutoPlay) 
      */
     var autoPlayTurnInProgress: Boolean = false
     var autoPlayJob: Job? = null
+    private val turnEndAuthorized = AtomicBoolean(false)
 
     fun startMultiturnAutoPlay() {
         Timers.singleton.startTiming()
@@ -53,15 +55,30 @@ class AutoPlay(private var autoPlaySettings: GameSettings.GameSettingsAutoPlay) 
      * Set it to false if the turn will end.
      * @throws IllegalStateException if an AutoPlay job is currently running as this is called.
      */
-    fun runAutoPlayJobInNewThread(jobName: String, worldScreen: WorldScreen, setPlayerTurnAfterEnd: Boolean = true, job: () -> Unit) {
+    fun runAutoPlayJobInNewThread(
+        jobName: String,
+        worldScreen: WorldScreen,
+        setPlayerTurnAfterEnd: Boolean = true,
+        job: suspend () -> Unit,
+    ) {
         if (autoPlayTurnInProgress) throw IllegalStateException("Trying to start an AutoPlay job while a job is currently running")
+        if (!setPlayerTurnAfterEnd) {
+            if (!worldScreen.isPlayersTurn) return
+            turnEndAuthorized.set(true)
+        }
         autoPlayTurnInProgress = true
         worldScreen.isPlayersTurn = false
         autoPlayJob = Concurrency.runOnNonDaemonThreadPool(jobName) {
-            job()
-            autoPlayTurnInProgress = false
-            if (setPlayerTurnAfterEnd)
-                 worldScreen.isPlayersTurn = true
+            try {
+                job()
+            } finally {
+                autoPlayTurnInProgress = false
+                // If an end-turn job failed before nextTurn consumed its one-shot token, revoke it
+                // and restore the UI instead of leaving a stale authorization behind.
+                if (setPlayerTurnAfterEnd || turnEndAuthorized.compareAndSet(true, false)) {
+                    worldScreen.isPlayersTurn = true
+                }
+            }
         }
     }
 
@@ -69,9 +86,11 @@ class AutoPlay(private var autoPlaySettings: GameSettings.GameSettingsAutoPlay) 
 
     @Readonly fun isAutoPlayingAndFullAutoPlayAI(): Boolean = isAutoPlaying() && autoPlaySettings.fullAutoPlayAI
 
+    internal fun consumeTurnEndAuthorization(): Boolean =
+        turnEndAuthorized.compareAndSet(true, false)
+
     /**
      * @return true if we should play at least 1 more turn and we are not currenlty processing any AutoPlay
      */
     @Readonly fun shouldContinueAutoPlaying(): Boolean = !autoPlayTurnInProgress && turnsToAutoPlay > 0
 }
-

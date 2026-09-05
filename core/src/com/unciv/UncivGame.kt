@@ -37,7 +37,6 @@ import com.unciv.utils.*
 import kotlinx.coroutines.CancellationException
 import yairm210.purity.annotations.Readonly
 import java.io.PrintWriter
-import java.lang.management.ManagementFactory
 import java.util.*
 import kotlin.collections.ArrayDeque
 import kotlin.collections.asSequence
@@ -64,8 +63,22 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
 
     lateinit var settings: GameSettings
     lateinit var musicController: MusicController
-    lateinit var onlineMultiplayer: Multiplayer
     lateinit var files: UncivFiles
+
+    private var onlineMultiplayerInstance: Multiplayer? = null
+
+    /**
+     * Online multiplayer for platforms that support it.
+     * Use [onlineMultiplayerOrNull] before entering an optional multiplayer flow.
+     */
+    val onlineMultiplayer: Multiplayer
+        @Readonly get() = checkNotNull(onlineMultiplayerInstance) {
+            "Online multiplayer is unavailable or has not been initialized"
+        }
+
+    /** Query online multiplayer without constructing it or failing on unsupported platforms. */
+    val onlineMultiplayerOrNull: Multiplayer?
+        @Readonly get() = onlineMultiplayerInstance
 
     var isTutorialTaskCollapsed = false
 
@@ -75,6 +88,7 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
     /** Flag used only during initialization until the end of [create] */
     protected var isInitialized = false
         private set
+    @Volatile private var appIsForeground = true
 
     /** A wrapped render() method that crashes to [CrashScreen] on a unhandled exception or error. */
     private val wrappedCrashHandlingRender = { super.render() }.wrapCrashHandlingUnit()
@@ -86,6 +100,7 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
 
     override fun create() {
         isInitialized = false // this could be on reload, therefore we need to keep setting this to false
+        appIsForeground = true
         Gdx.input.setCatchKey(Input.Keys.BACK, true)
         if (Gdx.app.type != Application.ApplicationType.Desktop) {
             DebugUtils.VISIBLE_MAP = false
@@ -111,6 +126,7 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
          * - Font (hence Fonts.resetFont() inside setSkin())
          */
         settings = files.getGeneralSettings() // needed for the screen
+        if (settings.multiplayer.migratePasswordsToSecureStorage()) settings.save()
         Display.setScreenMode(settings.screenMode, settings)
         setAsRootScreen(GameStartScreen())  // NOT dependent on any atlas or skin
         InputDisabling.disableInput() // We just set the game start screen, avoid ANRs until we actually load the main menu
@@ -120,14 +136,19 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
         musicController = MusicController()  // early, but at this point does only copy volume from settings
         installAudioHooks()
 
-        onlineMultiplayer = Multiplayer()
-
-        Concurrency.run {
-            // Check if the server is available in case the feature set has changed
-            try {
-                onlineMultiplayer.multiplayerServer.checkServerStatus()
-            } catch (ex: Exception) {
-                debug("Couldn't connect to server: " + ex.message)
+        if (platformCapabilities.onlineMultiplayer) {
+            val multiplayer = Multiplayer(createMultiplayerV1Transport())
+            onlineMultiplayerInstance = multiplayer
+            // Start only after publishing the owner. Preview refreshes resolve onlineMultiplayer
+            // through UncivGame.Current and must never observe a half-initialized object graph.
+            multiplayer.resume()
+            Concurrency.run {
+                // Check if the server is available in case the feature set has changed
+                try {
+                    multiplayer.multiplayerServer.checkServerStatus()
+                } catch (ex: Exception) {
+                    debug("Couldn't connect to server: " + ex.message)
+                }
             }
         }
         
@@ -178,10 +199,22 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
                 when {
                     settings.isFreshlyCreated -> setAsRootScreen(LanguagePickerScreen())
                     deepLinkedMultiplayerGame == null -> setAsRootScreen(MainMenuScreen())
+                    !platformCapabilities.onlineMultiplayer -> {
+                        deepLinkedMultiplayerGame = null
+                        val mainMenu = MainMenuScreen()
+                        setAsRootScreen(mainMenu)
+                        Popup(mainMenu).apply {
+                            addGoodSizedLabel(ONLINE_MULTIPLAYER_UNAVAILABLE).row()
+                            addCloseButton()
+                            open()
+                        }
+                    }
                     else -> tryLoadDeepLinkedGame()
                 }
 
                 isInitialized = true
+                if (appIsForeground) onlineMultiplayerOrNull?.resume()
+                else onlineMultiplayerOrNull?.pause()
             }
         }
     }
@@ -197,19 +230,23 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
      * @param autoPlay pass in the old WorldScreen AutoPlay to retain the state throughout turns. Otherwise leave it is the default.
      */
     suspend fun loadGame(newGameInfo: GameInfo, autoPlay: AutoPlay = AutoPlay(settings.autoPlay), callFromLoadScreen: Boolean = false): WorldScreen = withThreadPoolContext toplevel@{
+        if (newGameInfo.gameParameters.isOnlineMultiplayer && !platformCapabilities.onlineMultiplayer) {
+            throw UncivShowableException(ONLINE_MULTIPLAYER_UNAVAILABLE)
+        }
+
         val prevGameInfo = gameInfo
-        gameInfo = newGameInfo
-
-
-        if (gameInfo?.gameParameters?.isOnlineMultiplayer == true
-                && gameInfo?.gameParameters?.anyoneCanSpectate == false
-                && gameInfo!!.civilizations.none { it.playerId == settings.multiplayer.getUserId() }) {
+        if (newGameInfo.gameParameters.isOnlineMultiplayer
+                && !newGameInfo.gameParameters.anyoneCanSpectate
+                && newGameInfo.civilizations.none { it.playerId == settings.multiplayer.getUserId() }) {
             throw UncivShowableException("You are not allowed to spectate!")
         }
 
         initializeResources(newGameInfo)
+        gameInfo = newGameInfo
 
-        val isLoadingSameGame = worldScreen != null && prevGameInfo != null && prevGameInfo.gameId == newGameInfo.gameId
+        val isLoadingSameGame = worldScreen != null
+            && prevGameInfo != null
+            && isSameGameForWorldRestore(prevGameInfo, newGameInfo)
         val worldScreenRestoreState = if (!callFromLoadScreen && isLoadingSameGame) worldScreen!!.getRestoreState() else null
 
         lateinit var loadingScreen: LoadingScreen
@@ -385,6 +422,12 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
 
     private fun tryLoadDeepLinkedGame() = Concurrency.run("LoadDeepLinkedGame") {
         if (deepLinkedMultiplayerGame == null) return@run
+        val multiplayer = onlineMultiplayerOrNull
+        if (multiplayer == null) {
+            deepLinkedMultiplayerGame = null
+            debug("Ignoring multiplayer deep link because online multiplayer is unavailable")
+            return@run
+        }
 
         launchOnGLThread {
             if (screenStack.isEmpty() || screenStack[0] !is GameStartScreen) {
@@ -392,7 +435,7 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
             }
         }
         try {
-            onlineMultiplayer.downloadGame(deepLinkedMultiplayerGame!!)
+            multiplayer.downloadGame(deepLinkedMultiplayerGame!!)
         } catch (ex: Exception) {
             launchOnGLThread {
                 val mainMenu = replaceCurrentScreen { MainMenuScreen() }
@@ -411,8 +454,11 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
     // This is ALWAYS called after create() on Android - google "Android life cycle"
     override fun resume() {
         super.resume()
+        appIsForeground = true
         if (!isInitialized) return // The stuff from Create() is still happening, so the main screen will load eventually
         musicController.resumeFromShutdown()
+        worldScreen?.resumeMultiplayerUploadState()
+        onlineMultiplayerOrNull?.resume()
 
         // This is also needed in resume to open links and notifications
         // correctly when the app was already running. The handling in onCreate
@@ -421,9 +467,11 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
     }
 
     override fun pause() {
+        appIsForeground = false
         // Needs to go ASAP - on Android, there's a tiny race condition: The OS will stop our playback forcibly, it likely
         // already has, but if we do _our_ pause before the MusicController timer notices, it will at least remember the current track.
-        if (::musicController.isInitialized) musicController.pause()
+        if (::musicController.isInitialized) musicController.pause(onShutdown = true)
+        onlineMultiplayerOrNull?.pause()
         val curGameInfo = gameInfo
         // Since we're pausing the game, we don't need to clone it before autosave - no one else will touch it
         if (curGameInfo != null) files.autosaves.requestAutoSaveUnCloned(curGameInfo)
@@ -442,7 +490,7 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
         SoundPlayer.clearCache()
         if (::musicController.isInitialized) musicController.gracefulShutdown()  // Do allow fade-out
         // We stop the *in-game* multiplayer update, so that it doesn't keep working and A. we'll have errors and B. we'll have multiple updaters active
-        if (::onlineMultiplayer.isInitialized) onlineMultiplayer.multiplayerGameUpdater.cancel()
+        onlineMultiplayerOrNull?.pause()
 
         settings.save()
 
@@ -489,8 +537,6 @@ private fun logRunningThreads() {
         return mainMenuScreen
     }
 
-    override fun getGcCount(): Int = ManagementFactory.getGarbageCollectorMXBeans().sumOf { it.collectionCount }.toInt()
-
     companion object {
         //region AUTOMATICALLY GENERATED VERSION DATA - DO NOT CHANGE THIS REGION, INCLUDING THIS COMMENT
         val VERSION = Version("4.21.16", 1257)
@@ -503,12 +549,20 @@ private fun logRunningThreads() {
         @Readonly fun isCurrentInitialized() = this::Current.isInitialized
         /** Get the game currently in progress safely - null either if [Current] has not yet been set or if its gameInfo field has no game */
         @Readonly fun getGameInfoOrNull() = if (isCurrentInitialized()) Current.gameInfo else null
-        @Readonly fun isCurrentGame(gameId: String): Boolean = isCurrentInitialized() && Current.gameInfo != null && Current.gameInfo!!.gameId == gameId
+        @Readonly
+        fun isCurrentGame(gameId: String, serverUrl: String? = null): Boolean {
+            if (!isCurrentInitialized()) return false
+            val currentGame = Current.gameInfo ?: return false
+            if (currentGame.gameId != gameId) return false
+            if (!currentGame.gameParameters.isOnlineMultiplayer || serverUrl == null) return true
+            return currentGame.gameParameters.multiplayerServerUrl.normalizedMultiplayerServerUrl() ==
+                serverUrl.normalizedMultiplayerServerUrl()
+        }
         @Readonly fun isDeepLinkedGameLoading() = isCurrentInitialized() && Current.deepLinkedMultiplayerGame != null
 
         @Readonly
         fun getUserAgent(fallbackStr: String = "Unknown"): String = if (isCurrentInitialized()) {
-            "Unciv/${VERSION.toNiceString()}-GNU-Terry-Pratchett"
+            "Unciv/${VERSION.toSerializeString()}-GNU-Terry-Pratchett"
         } else "Unciv/$fallbackStr-GNU-Terry-Pratchett"
 
         /** Handles an uncaught exception or error. First attempts a platform-specific handler, and if that didn't handle the exception or error, brings the game to a [CrashScreen]. */
@@ -542,3 +596,16 @@ private fun logRunningThreads() {
         }
     }
 }
+
+@Readonly
+fun isSameGameForWorldRestore(previous: GameInfo, next: GameInfo): Boolean {
+    if (previous.gameId != next.gameId) return false
+    val previousOnline = previous.gameParameters.isOnlineMultiplayer
+    val nextOnline = next.gameParameters.isOnlineMultiplayer
+    if (!previousOnline && !nextOnline) return true
+    if (previousOnline != nextOnline) return false
+    return previous.gameParameters.multiplayerServerUrl.normalizedMultiplayerServerUrl() ==
+        next.gameParameters.multiplayerServerUrl.normalizedMultiplayerServerUrl()
+}
+
+private fun String?.normalizedMultiplayerServerUrl() = this?.trimEnd('/').orEmpty()

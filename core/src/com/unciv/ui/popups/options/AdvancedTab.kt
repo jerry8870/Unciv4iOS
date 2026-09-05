@@ -48,7 +48,6 @@ import com.unciv.utils.isRunFromJar
 import com.unciv.utils.isUUID
 import com.unciv.utils.launchOnGLThread
 import com.unciv.utils.withoutItem
-import java.nio.file.Path
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,12 +55,6 @@ import java.util.zip.Deflater
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlin.io.path.exists
-import kotlin.io.path.extension
-import kotlin.io.path.isDirectory
-import kotlin.io.path.name
-import kotlin.io.path.nameWithoutExtension
-import kotlin.io.path.pathString
 
 internal class AdvancedTab(
     optionsPopup: OptionsPopup
@@ -94,10 +87,12 @@ internal class AdvancedTab(
 
         addSeparator()
 
-        addSetUserId()
+        if (game.platformCapabilities.onlineMultiplayer)
+            addSetUserId()
 
         addTranslationGeneration()
-        addUpdateModCategories()
+        if (game.platformCapabilities.onlineModManagement)
+            addUpdateModCategories()
         addScreenhotGeneration()
 
         super.lateInitialize()
@@ -169,26 +164,21 @@ internal class AdvancedTab(
 
     private fun addFontFamilySelect() {
         /** Build provider for [addAsyncSelectBox]: per-mod scan */
-        @Suppress("NewApi")
-        fun loadModFonts(mod: Path) = flow {
-            kotlin.io.path.fileVisitor {  }
-            if (!mod.isDirectory()) return@flow
-            val fontsPath = mod.resolve("fonts")
-            if (!fontsPath.exists() || !fontsPath.isDirectory()) return@flow
-            java.nio.file.Files.list(fontsPath).use { stream->
-                for (file in stream) {
-                    if (file.extension.lowercase() != "ttf") continue
-                    emit(FontFamilyData(
-                        "${file.nameWithoutExtension} (${mod.name})",
-                        file.nameWithoutExtension,
-                        file.pathString
-                    ))
-                }
+        fun loadModFonts(mod: FileHandle) = flow {
+            if (!mod.exists() || !mod.isDirectory) return@flow
+            val fontsFolder = mod.child("fonts")
+            if (!fontsFolder.exists() || !fontsFolder.isDirectory) return@flow
+            for (file in fontsFolder.list()) {
+                if (file.extension().lowercase() != "ttf") continue
+                emit(FontFamilyData(
+                    "${file.nameWithoutExtension()} (${mod.name()})",
+                    file.nameWithoutExtension(),
+                    file.file().absolutePath
+                ))
             }
         }.flowOn(Dispatchers.IO)
 
         /** Build provider for [addAsyncSelectBox]: default, mods, system */
-        @Suppress("NewApi")
         fun loadFonts() = flow {
             // Add default font
             emit(FontFamilyData.default)
@@ -196,11 +186,8 @@ internal class AdvancedTab(
             val modsDir = UncivGame.Current.files.getModsFolder()
             if (Gdx.app.type != Application.ApplicationType.Android || Gdx.app.version >= 26) {
                 if (modsDir.type() == Files.FileType.External) {
-                    val modNio = modsDir.file().toPath()
-                    java.nio.file.Files.list(modNio).use { stream ->
-                        for (mod in stream)
-                            emitAll(loadModFonts(mod))
-                    }
+                    for (mod in modsDir.list())
+                        emitAll(loadModFonts(mod))
                 }
             }
             // Add system fonts
@@ -335,7 +322,17 @@ internal class AdvancedTab(
         var fileLocation: String,
         var centerTile: HexCoord,
         var attackCity: Boolean = true
-    )
+    ) {
+        override fun hashCode(): Int {
+            var result = width
+            result = 31 * result + height
+            result = 31 * result + screenSize.hashCode()
+            result = 31 * result + fileLocation.hashCode()
+            result = 31 * result + centerTile.hashCode()
+            result = 31 * result + if (attackCity) 1231 else 1237
+            return result
+        }
+    }
 
     private fun CoroutineScope.generateScreenshots(settings: GameSettings, configs: ArrayList<ScreenshotConfig>) {
         val currentConfig = configs.first()

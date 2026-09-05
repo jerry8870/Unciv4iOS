@@ -17,7 +17,7 @@ body:
       options:
       - label: This is NOT a gameplay feature from Civ VI, BNW, or outside - see Roadmap
         required: true
-      - label: This is NOT a gameplay feature from Vanilla Civ V or from G&K - If so, it should be a comment in https://github.com/yairm210/Unciv/issues/4697
+      - label: This is NOT a gameplay feature from Vanilla Civ V or from G&K - If so, it should be a comment in https://github.com/jerry8870/Unciv4iOS
         required: true
   - type: textarea
     attributes:

@@ -7,9 +7,10 @@ import com.unciv.json.fromJsonFile
 import com.unciv.json.json
 import com.unciv.models.ruleset.RulesetCache
 import com.unciv.ui.images.ImageGetter
+import com.unciv.utils.RoboVMCompatibleHashMap
 import com.unciv.utils.debug
 
-object SkinCache : HashMap<String, SkinConfig>() {
+object SkinCache : RoboVMCompatibleHashMap<String, SkinConfig>() {
     private data class SkinAndMod(val skin: String, val mod: String)
     private val allConfigs = HashMap<SkinAndMod, SkinConfig>()
 

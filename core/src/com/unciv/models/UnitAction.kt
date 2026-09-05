@@ -91,7 +91,11 @@ open class UnitAction(
         return true
     }
 
-    override fun hashCode(): Int = hashOf(type.hashCode(), isCurrentAction.hashCode(), action.hashCode())
+    override fun hashCode(): Int = hashOf(
+        type.hashCode(),
+        if (isCurrentAction) 1231 else 1237,
+        action.hashCode()
+    )
 
     override fun toString(): String {
         return "UnitAction(type=$type, title='$title', isCurrentAction=$isCurrentAction)"

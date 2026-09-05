@@ -1,8 +1,8 @@
-Immaġinazzjoni mill-ġdid open-source tal-aktar logħba popolari ta' ġestjoni taċ-ċivilizzazzjoni li qatt saret; veloċi, ħafifa, bla reklami, u b'xejn għal dejjem!
+Immaġinazzjoni mill-ġdid open-source tal-aktar logħba popolari ta' ġestjoni taċ-ċivilizzazzjoni li qatt saret; veloċi u ħafifa!
 
 Ibni l-imperu tiegħek, irriċerka teknoloġiji differenti, espandi l-bliet tiegħek, u elimina l-avversarji tiegħek!
 
-Suġġerimenti? Bugs? Il-lista ta' kwistjonijiet miftuħa tista' tinstab fuq il-<a href="https://github.com/yairm210/Unciv/issues">paġna tal-Github fuq il-Kwistjonijiet</a>. Kull għajnuna hija milqugħa!
+Suġġerimenti? Bugs? Il-lista ta' kwistjonijiet miftuħa tista' tinstab fuq il-<a href="https://github.com/jerry8870/Unciv4iOS">paġna tal-Github fuq il-Kwistjonijiet</a>. Kull għajnuna hija milqugħa!
 
 Xi mistoqsijiet? Kummenti? Jew għandek ħafna ħin liberu biex tinvesti? Ejja tkellem magħna fuq is-<a href="https://discord.gg/bjrB4Xw">server tal-Unciv fuq Discord</a>.
 

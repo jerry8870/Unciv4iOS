@@ -1,126 +1,194 @@
 package com.unciv.ui.screens.multiplayerscreens
 
-import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.ui.Container
-import com.badlogic.gdx.scenes.scene2d.ui.HorizontalGroup
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton
-import com.badlogic.gdx.scenes.scene2d.ui.VerticalGroup
+import com.badlogic.gdx.utils.Align
 import com.unciv.UncivGame
 import com.unciv.logic.GameInfoPreview
 import com.unciv.logic.event.EventBus
 import com.unciv.logic.multiplayer.HasMultiplayerGameName
 import com.unciv.logic.multiplayer.MultiplayerGameNameChanged
+import com.unciv.logic.multiplayer.MultiplayerGamePreview
 import com.unciv.logic.multiplayer.MultiplayerGameUpdateEnded
 import com.unciv.logic.multiplayer.MultiplayerGameUpdateFailed
 import com.unciv.logic.multiplayer.MultiplayerGameUpdateStarted
 import com.unciv.logic.multiplayer.MultiplayerGameUpdateSucceeded
-import com.unciv.logic.multiplayer.MultiplayerGameUpdated
-import com.unciv.logic.multiplayer.isUsersTurn
-import com.unciv.ui.images.ImageGetter
-import com.unciv.ui.screens.basescreen.BaseScreen
+import com.unciv.models.translations.tr
+import com.unciv.ui.components.extensions.darken
+import com.unciv.ui.components.extensions.formatShort
+import com.unciv.ui.components.extensions.setFontColor
+import com.unciv.ui.components.extensions.toLabel
 import com.unciv.ui.components.input.onClick
-import com.unciv.ui.components.extensions.setSize
+import com.unciv.ui.screens.basescreen.BaseScreen
 
 class GameList(
-    val onSelected: (String) -> Unit
-) : VerticalGroup() {
-
+    private val onSelected: (String) -> Unit,
+) : Table() {
     private val gameDisplays = mutableMapOf<String, GameDisplay>()
-
     private val events = EventBus.EventReceiver()
+    private var selectedName: String? = null
 
     init {
-        padTop(10f)
-        padBottom(10f)
-
-        events.receive(MultiplayerGameNameChanged::class) {
-            update()
-        }
-
+        top()
+        events.receive(MultiplayerGameNameChanged::class) { update() }
         update()
     }
 
-    fun update(){
-        clearChildren()
+    fun update() {
+        gameDisplays.values.forEach(GameDisplay::dispose)
         gameDisplays.clear()
-        for (game in UncivGame.Current.onlineMultiplayer.games) {
-            val gameDisplay = GameDisplay(game.name, game.preview, game.error, onSelected)
+        clearChildren()
+
+        val userId = UncivGame.Current.settings.multiplayer.getUserId()
+        val games = UncivGame.Current.onlineMultiplayer.games.sortedWith(
+            compareByDescending<MultiplayerGamePreview> {
+                buildMultiplayerGameUiModel(
+                    it.name,
+                    it.preview,
+                    it.error != null,
+                    it.getLastUpdate(),
+                    userId,
+                ).isUsersTurn
+            }.thenBy { it.name }
+        )
+        for (game in games) {
+            val gameDisplay = GameDisplay(game, userId, onSelected)
             gameDisplays[game.name] = gameDisplay
-            addActor(gameDisplay)
+            add(gameDisplay).growX().minWidth(0f).padBottom(6f).row()
         }
-        children.sort()
+        select(selectedName)
+    }
+
+    fun select(name: String?) {
+        selectedName = name
+        gameDisplays.forEach { (gameName, display) ->
+            display.setSelected(gameName == name)
+        }
+    }
+
+    fun dispose() {
+        gameDisplays.values.forEach(GameDisplay::dispose)
+        events.stopReceiving()
     }
 }
 
 private class GameDisplay(
-    multiplayerGameName: String,
-    var preview: GameInfoPreview?,
-    error: Throwable?,
-    private val onSelected: (String) -> Unit
-) : Table(), Comparable<GameDisplay> {
-    var gameName: String = multiplayerGameName
-        private set
-    val gameButton = TextButton(gameName, BaseScreen.skin)
-    val turnIndicator = createIndicator("OtherIcons/ExclamationMark")
-    val errorIndicator = createIndicator("StatIcons/Malcontent")
-    val refreshIndicator = createIndicator("EmojiIcons/Turn")
-    val statusIndicators = HorizontalGroup()
+    private val multiplayerGame: MultiplayerGamePreview,
+    private val userId: String,
+    private val onSelected: (String) -> Unit,
+) : Table() {
+    private var preview: GameInfoPreview? = multiplayerGame.preview
+    private var hasError = multiplayerGame.error != null
+    private var isRefreshing = false
 
-    val events = EventBus.EventReceiver()
+    private val nameLabel = "".toLabel(fontSize = multiplayerContentFontSize).apply { setEllipsis(true) }
+    private val civilizationLabel = "".toLabel(fontSize = multiplayerContentFontSize, alignment = Align.center)
+    private val civilizationBadge = Table().apply {
+        add(civilizationLabel).minWidth(0f).center()
+    }
+    private val metadataLabel = "".toLabel(Color.LIGHT_GRAY, fontSize = multiplayerSecondaryFontSize).apply {
+        setEllipsis(true)
+    }
+    private val statusLabel = "".toLabel(fontSize = multiplayerSecondaryFontSize, alignment = Align.center).apply {
+        setEllipsis(true)
+    }
+    private val statusBadge = Table()
+    private val events = EventBus.EventReceiver()
 
     init {
-        padBottom(5f)
+        pad(9f, 10f, 9f, 10f)
 
-        updateTurnIndicator()
-        updateErrorIndicator(error != null)
-        add(statusIndicators)
-        add(gameButton)
-        onClick { onSelected(gameName) }
+        val copy = Table().apply {
+            add(nameLabel).growX().minWidth(0f).left().row()
+            add(metadataLabel).growX().minWidth(0f).left().padTop(3f)
+        }
+        statusBadge.add(statusLabel).minWidth(0f).pad(6f, 10f, 6f, 10f)
+        add(civilizationBadge).size(46f).padRight(10f)
+        add(copy).growX().minWidth(0f).left()
+        add(statusBadge).minWidth(0f).right().padLeft(8f)
 
-        val isOurGame: (HasMultiplayerGameName) -> Boolean = { it.name == gameName }
+        onClick { onSelected(multiplayerGame.name) }
+
+        val isOurGame: (HasMultiplayerGameName) -> Boolean = { it.name == multiplayerGame.name }
         events.receive(MultiplayerGameUpdateStarted::class, isOurGame) {
-            statusIndicators.addActor(refreshIndicator)
+            isRefreshing = true
+            updateContent()
         }
         events.receive(MultiplayerGameUpdateEnded::class, isOurGame) {
-            refreshIndicator.remove()
-        }
-        events.receive(MultiplayerGameUpdated::class, isOurGame) {
-            preview = it.preview
-            updateTurnIndicator()
+            isRefreshing = false
+            updateContent()
         }
         events.receive(MultiplayerGameUpdateSucceeded::class, isOurGame) {
-            updateErrorIndicator(false)
+            preview = it.preview
+            hasError = false
+            updateContent()
         }
         events.receive(MultiplayerGameUpdateFailed::class, isOurGame) {
-            updateErrorIndicator(true)
+            hasError = true
+            updateContent()
         }
+
+        updateContent()
+        setSelected(false)
     }
 
-    private fun updateTurnIndicator() {
-        if (isPlayersTurn()) statusIndicators.addActor(turnIndicator)
-        else turnIndicator.remove()
+    fun setSelected(selected: Boolean) {
+        val color = if (selected) SelectedBackground else NormalBackground
+        background = BaseScreen.skinStrings.getUiBackground(
+            if (selected) "MultiplayerScreen/GameRowSelected" else "MultiplayerScreen/GameRow",
+            BaseScreen.skinStrings.roundedEdgeRectangleSmallShape,
+            color,
+        )
     }
 
-    private fun updateErrorIndicator(hasError: Boolean) {
-        if (hasError) statusIndicators.addActor(errorIndicator)
-        else errorIndicator.remove()
+    private fun updateContent() {
+        val model = buildMultiplayerGameUiModel(
+            multiplayerGame.name,
+            preview,
+            hasError,
+            multiplayerGame.getLastUpdate(),
+            userId,
+            isRefreshing,
+        )
+        nameLabel.setText(model.name)
+        civilizationLabel.setText(
+            model.currentPlayer?.let { "{$it}".tr().take(1) } ?: "?"
+        )
+
+        val turn = model.turn?.let { "Turn [$it]".tr() } ?: "Turn unavailable".tr()
+        val currentPlayer = model.currentPlayer?.let { "{$it}".tr() } ?: "Unknown".tr()
+        val updated = "Updated [${model.updatedAgo.formatShort()}] ago".tr()
+        metadataLabel.setText("$turn  ·  $currentPlayer  ·  $updated")
+
+        val (statusText, statusColor) = when (model.status) {
+            MultiplayerGameUiStatus.Refreshing -> "Refreshing..." to Color.GOLD
+            MultiplayerGameUiStatus.YourTurn -> "Your turn" to Positive
+            MultiplayerGameUiStatus.WaitingForOpponent -> "Waiting for opponent" to Color.LIGHT_GRAY
+            MultiplayerGameUiStatus.RefreshFailed -> "Refresh failed" to Negative
+            MultiplayerGameUiStatus.Unavailable -> "Unavailable" to Color.GRAY
+        }
+        statusLabel.setText(statusText.tr())
+        statusLabel.setFontColor(statusColor)
+        statusBadge.background = BaseScreen.skinStrings.getUiBackground(
+            "MultiplayerScreen/StatusBadge",
+            BaseScreen.skinStrings.roundedEdgeRectangleSmallShape,
+            statusColor.darken(0.68f),
+        )
+        civilizationBadge.background = BaseScreen.skinStrings.getUiBackground(
+            "MultiplayerScreen/CivilizationBadge",
+            BaseScreen.skinStrings.roundedEdgeRectangleSmallShape,
+            statusColor.darken(0.62f),
+        )
     }
 
-    private fun createIndicator(imagePath: String): Actor {
-        val image = ImageGetter.getImage(imagePath)
-        image.setSize(50f)
-        val container = Container(image)
-        container.padRight(5f)
-        return container
+    fun dispose() {
+        events.stopReceiving()
     }
 
-    fun isPlayersTurn() = preview?.isUsersTurn() == true
-
-    override fun compareTo(other: GameDisplay): Int =
-            if (isPlayersTurn() != other.isPlayersTurn()) // games where it's the player's turn are displayed first, thus must get the lower number
-                other.isPlayersTurn().compareTo(isPlayersTurn())
-            else gameName.compareTo(other.gameName)
-    override fun equals(other: Any?): Boolean = (other is GameDisplay) && (gameName == other.gameName)
-    override fun hashCode(): Int = gameName.hashCode()
+    companion object {
+        private val NormalBackground = Color.valueOf("102544")
+        private val SelectedBackground = Color.valueOf("183e70")
+        private val Positive = Color.valueOf("66dfbd")
+        private val Negative = Color.valueOf("ff7c8b")
+    }
 }

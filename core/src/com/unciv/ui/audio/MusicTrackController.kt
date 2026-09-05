@@ -3,6 +3,8 @@ package com.unciv.ui.audio
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.files.FileHandle
+import com.badlogic.gdx.utils.GdxRuntimeException
+import com.unciv.UncivGame
 import com.unciv.utils.Log
 import com.unciv.utils.debug
 
@@ -53,6 +55,10 @@ internal class MusicTrackController(private var volume: Float, initialFadeVolume
 
         state = State.Loading
         try {
+            if (file.extension().equals("ogg", ignoreCase = true) &&
+                !UncivGame.Current.platformCapabilities.oggAudio) {
+                throw GdxRuntimeException("OGG audio is unavailable in this build")
+            }
             music = Gdx.audio.newMusic(file)
             if (state != State.Loading) {  // in case clear was called in the meantime
                 clear()

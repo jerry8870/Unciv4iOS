@@ -247,7 +247,7 @@ class TileImprovementFunctions(val tile: Tile) {
                 }
 
                 // relevant when the improvement was created instantly - such as Great Improvement
-                tile.improvementQueue.removeIf { tile.ruleset.tileImprovements[it.improvement]?.isRoad() == true }
+                tile.improvementQueue.removeAll { tile.ruleset.tileImprovements[it.improvement]?.isRoad() == true }
             }
         }
 

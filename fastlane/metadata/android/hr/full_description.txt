@@ -1,8 +1,8 @@
-Reimplementacija najpoznatije igre za izgradnju civilizacije otvorenog koda - brza, mala, bez oglasa, besplatna zauvijek!
+Reimplementacija najpoznatije igre za izgradnju civilizacije otvorenog koda - brza i mala!
 
 Izgradite svoju civilizaciju, istražite tehnologije, proširite svoje gradove i porazite svoje neprijatelje!
 
-Zahtjevi? greške? Želite li pomoći razvoju? Popis obaveza za aplikaciju je na <a href="https://github.com/yairm210/Unciv/issues">GitHub Issues</a>
+Zahtjevi? greške? Želite li pomoći razvoju? Popis obaveza za aplikaciju je na <a href="https://github.com/jerry8870/Unciv4iOS">GitHub Issues</a>
 
 Pitanja? Komentari? Pridružite nam se na Diskordu na <a href="https://discord.gg/bjrB4Xw">Discord</a> ;)
 

@@ -93,7 +93,7 @@ object SpecificUnitAutomation {
         val rangeToSearch = if (unit.civ.cities.isEmpty() && unit.civ.gameInfo.turns < 4) (3 - unit.civ.gameInfo.turns).coerceAtLeast(1) else null
 
         // It's possible that we'll see a tile "over the sea" that's better than the tiles close by, but that's not a reason to abandon the close tiles!
-        // Also this lead to some routing problems, see https://github.com/yairm210/Unciv/issues/3653
+        // Also this lead to some routing problems, see https://github.com/jerry8870/Unciv4iOS
         val minimumTileValue = unit.civ.gameInfo.ruleset.modOptions.constants.minimumCityLocationTileValue // To prevent AI from settling snow regions, could use a better implementation
         val bestTilesInfo = CityLocationTileRanker.getBestTilesToFoundCity(unit, rangeToSearch, minimumTileValue)
         var bestCityLocation: Tile? = null

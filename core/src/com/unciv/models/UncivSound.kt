@@ -31,5 +31,11 @@ data class UncivSound(
         val Swap = UncivSound("swap")
         val Upgrade = UncivSound("upgrade")
         val Whoosh = UncivSound("whoosh")
+
+        internal val predefinedSounds = listOf(
+            Bombard, Chimes, Choir, Click, Coin, Construction, Fire, Fortify,
+            Notification1, Notification2, Paper, Policy, Promote, Setup, Silent,
+            Slider, Swap, Upgrade, Whoosh
+        )
     }
 }

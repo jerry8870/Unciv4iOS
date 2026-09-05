@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.unciv.json.fromJsonFile
 import com.unciv.json.json
 import com.unciv.logic.BackwardCompatibility.updateDeprecations
-import com.unciv.logic.UncivKtor
 import com.unciv.logic.github.Github.CountingInputStream.Companion.create
 import com.unciv.logic.github.Github.repoNameToFolderName
 import com.unciv.logic.github.GithubAPI.fetchReleaseZip
@@ -124,6 +123,8 @@ object Github {
      *  @return [Pixmap] on success or `null` on failure
      */
     suspend fun getPreviewImageOrNull(modUrl: String, defaultBranch: String, avatarUrl: String?): Pixmap? {
+        if (!GithubAPI.isOnlineModManagementAvailable()) return null
+
         // Side note: github repos also have a "Social Preview" optionally assignable on the repo's
         // settings page, but that info is inaccessible using the v3 API anonymously. The easiest way
         // to get it would be to query the the repo's frontend page (modUrl), and parse out
@@ -140,7 +141,7 @@ object Github {
                 return@runBlocking listOf(
                     async { GithubAPI.fetchPreviewImageOrNull(modUrl, defaultBranch, "jpg") },
                     async { GithubAPI.fetchPreviewImageOrNull(modUrl, defaultBranch, "png") },
-                    async { avatarUrl?.let { UncivKtor.getOrNull(it) } }
+                    async { avatarUrl?.let { GithubAPI.fetchOnlineImageOrNull(it) } }
                 ).awaitAll()
                     // automatically falls back to last succeeding response
                     .firstNotNullOf { it }
@@ -266,9 +267,10 @@ object Github {
     }
 
     private fun trySaveAvatarAsPreview(modFolder: FileHandle, repo: GithubAPI.Repo) {
+        if (!GithubAPI.isOnlineModManagementAvailable()) return
         val avatarUrl = tryGetMissingAvatar(repo) ?: return
         Concurrency.run("Save avatar") {
-            val response = UncivKtor.getOrNull(avatarUrl) ?: return@run
+            val response = GithubAPI.fetchOnlineImageOrNull(avatarUrl) ?: return@run
             if (!response.status.isSuccess()) return@run
             // looking for 0xFFD8 or 0x89504E47 in the body bytes works too, but kotlin's embarrassing bytes & literals support makes that ugly
             val type = response.headers[HttpHeaders.ContentType] ?: return@run

@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.unciv.ui.images.ImageWithCustomSize
 import com.unciv.ui.popups.popups
@@ -44,7 +45,13 @@ class LoadingScreen(
             for (popup in previousScreen.popups) popup.isVisible = false
             previousScreen.render(Gdx.graphics.deltaTime)
         }
-        val pixmap = Pixmap.createFromFrameBuffer(0, 0, Gdx.graphics.backBufferWidth, Gdx.graphics.backBufferHeight)
+        val viewport = previousScreen?.stage?.viewport ?: stage.viewport
+        val pixmap = Pixmap.createFromFrameBuffer(
+            HdpiUtils.toBackBufferX(viewport.screenX),
+            HdpiUtils.toBackBufferY(viewport.screenY),
+            HdpiUtils.toBackBufferX(viewport.screenWidth),
+            HdpiUtils.toBackBufferY(viewport.screenHeight)
+        )
         val screenshot = Texture(pixmap)
         pixmap.dispose()
 

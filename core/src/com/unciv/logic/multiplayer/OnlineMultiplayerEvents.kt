@@ -35,6 +35,11 @@ class MultiplayerGameUpdateUnchanged(
     override val preview: GameInfoPreview
 ) : MultiplayerGameUpdateEnded, MultiplayerGameUpdateSucceeded
 
+/** Gets sent when a refresh is cancelled without changing its success/error state. */
+class MultiplayerGameUpdateCancelled(
+    override val name: String,
+) : MultiplayerGameUpdateEnded
+
 /**
  * Gets sent when a game starts updating
  */

@@ -37,6 +37,7 @@ import com.unciv.ui.images.ImageGetter
 import com.unciv.ui.popups.Popup
 import com.unciv.ui.screens.basescreen.BaseScreen
 import com.unciv.ui.screens.multiplayerscreens.MultiplayerHelpers
+import com.unciv.utils.ONLINE_MULTIPLAYER_UNAVAILABLE
 import kotlin.reflect.KMutableProperty0
 import kotlin.reflect.KMutableProperty1
 
@@ -193,16 +194,24 @@ class GameOptionsTable(
             addCheckbox("Enable Nuclear Weapons", gameParameters.nuclearWeaponsEnabled)
             { gameParameters.nuclearWeaponsEnabled = it }
 
-    private fun Table.addIsOnlineMultiplayerCheckbox() =
-            addCheckbox("Online Multiplayer", gameParameters.isOnlineMultiplayer, lockable = false)
+    private fun Table.addIsOnlineMultiplayerCheckbox() {
+        if (!UncivGame.Current.platformCapabilities.onlineMultiplayer) {
+            gameParameters.isOnlineMultiplayer = false
+            addCheckbox("Online Multiplayer", false, lockable = false) {}.isDisabled = true
+            add(ONLINE_MULTIPLAYER_UNAVAILABLE.toLabel(Color.GRAY)).colspan(2).row()
+            return
+        }
+
+        addCheckbox("Online Multiplayer", gameParameters.isOnlineMultiplayer, lockable = false)
             { shouldUseMultiplayer ->
                 gameParameters.isOnlineMultiplayer = shouldUseMultiplayer
                 updatePlayerPickerTable("")
                 if (shouldUseMultiplayer) {
-                    MultiplayerHelpers.showDropboxWarning(previousScreen as BaseScreen)
+                    MultiplayerHelpers.showMultiplayerServerWarning(previousScreen as BaseScreen)
                 }
                 update()
             }
+    }
 
     private fun Table.addAnyoneCanSpectateCheckbox() =
             addCheckbox("Allow anyone to spectate", gameParameters.anyoneCanSpectate)

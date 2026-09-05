@@ -17,7 +17,7 @@ import com.unciv.ui.popups.AnimatedMenuPopup.Companion.addContextMenu
 import com.unciv.ui.screens.basescreen.BaseScreen
 import com.unciv.ui.screens.worldscreen.WorldScreen
 import com.unciv.ui.screens.worldscreen.status.NextTurnAction.Default
-import com.unciv.utils.Concurrency
+import com.unciv.utils.withGLContext
 import yairm210.purity.annotations.Readonly
 
 class NextTurnButton(
@@ -45,7 +45,7 @@ class NextTurnButton(
             && !worldScreen.waitingForAutosave && !worldScreen.isNextTurnUpdateRunning()) {
             autoPlay.runAutoPlayJobInNewThread("MultiturnAutoPlay", worldScreen, false) {
                 TurnManager(worldScreen.selectedGameView.civView.getCiv()).automateTurn()
-                Concurrency.runOnGLThread { worldScreen.nextTurn() }
+                withGLContext { worldScreen.nextTurn(fromAutoPlay = true) }
                 autoPlay.endTurnMultiturnAutoPlay()
             }
         }

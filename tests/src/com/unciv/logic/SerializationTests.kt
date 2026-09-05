@@ -13,8 +13,8 @@ import com.unciv.ui.screens.victoryscreen.RankingType
 import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.time.Duration
-import java.time.temporal.ChronoUnit
+import org.threeten.bp.Duration
+import org.threeten.bp.temporal.ChronoUnit
 
 @RunWith(BaseTestRunner::class)
 class SerializationTests {
@@ -25,11 +25,12 @@ class SerializationTests {
     @Test
     fun `test DurationSerializer`() {
         val data = arrayListOf(
-            // Java Duration! (even though kotlin.Duration is perfectly fine - all the multiplayer code is outdated in that respect)
+            // Java-compatible Duration! (even though kotlin.Duration is perfectly fine - all the multiplayer code is outdated in that respect)
             Duration.ZERO,
             Duration.of(666, ChronoUnit.HOURS),
             Duration.parse("P1DT2H3M4.058S"),
         )
+        Assert.assertEquals("[\"PT0S\",\"PT666H\",\"PT26H3M4.058S\"]", json.toJson(data))
         testRoundtrip(data, Duration::class.java)
     }
 

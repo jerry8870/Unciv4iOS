@@ -1,8 +1,8 @@
-Reimplementace nejslavnější civilizační hry - rychlá, malá, bez reklam, navždy zadarmo!
+Reimplementace nejslavnější civilizační hry - rychlá a malá!
 
 Vybudujte svoji civilizaci, vyzkoumejte technologie, rozšiřte svá města a podmaňte si své nepřátele!
 
-Žádosti? Chyby? Seznam plánovaných funkcí najdete na: https://github.com/yairm210/Unciv/issues, každá malá pomoc je vítaná!
+Žádosti? Chyby? Seznam plánovaných funkcí najdete na: https://github.com/jerry8870/Unciv4iOS, každá malá pomoc je vítaná!
 
 Otázky? Komentáře? Nudíte se? Připojte se k nám na Discordu: https://discord.gg/bjrB4Xw.
 

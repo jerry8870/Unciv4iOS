@@ -25,11 +25,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.ClassDiscriminatorMode
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
+import kotlin.time.TimeSource
 
 // used when sending a message
 @Serializable
@@ -86,8 +85,7 @@ object ChatWebSocket {
 
     private var isStarted = false
 
-    @OptIn(ExperimentalTime::class)
-    private var lastRetry = Clock.System.now()
+    private var lastRetry = TimeSource.Monotonic.markNow()
     private var reconnectionAttempts = 0
     private var reconnectTime = INITIAL_RECONNECT_TIME
 
@@ -107,17 +105,14 @@ object ChatWebSocket {
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun resetExponentialBackoff() {
-        lastRetry = Clock.System.now()
+        lastRetry = TimeSource.Monotonic.markNow()
 
         reconnectionAttempts = 0
         reconnectTime = INITIAL_RECONNECT_TIME
     }
 
-    private fun getChatUrl(): Url = URLBuilder(
-        UncivGame.Current.onlineMultiplayer.multiplayerServer.getServerUrl()
-    ).apply {
+    private fun getChatUrl(serverUrl: String): Url = URLBuilder(serverUrl).apply {
         appendPathSegments("chat")
         protocol = if (protocol.isSecure()) URLProtocol.WSS else URLProtocol.WS
     }.build()
@@ -145,20 +140,18 @@ object ChatWebSocket {
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private fun handleWebSocketThrowables(t: Throwable) {
         print("ChatError: ${t.message}. Reconnecting...")
 
         if (reconnectionAttempts == 0) {
-            lastRetry = Clock.System.now()
+            lastRetry = TimeSource.Monotonic.markNow()
             ChatStore.relayGlobalMessage("WebSocket connection closed. Cause: [${t.cause}]")
             if (t.message?.contains("401") == true) {
                 ChatStore.relayGlobalMessage("Authentication issue detected! You have to set a password to use Chat.")
             }
         } else {
-            val now = Clock.System.now()
-            print(" (Last retry was ${(now - lastRetry).toString(DurationUnit.SECONDS, 2)} ago)")
-            lastRetry = now
+            print(" (Last retry was ${lastRetry.elapsedNow().toString(DurationUnit.SECONDS, 2)} ago)")
+            lastRetry = TimeSource.Monotonic.markNow()
         }
 
         println()
@@ -168,12 +161,14 @@ object ChatWebSocket {
     private suspend fun startSession() {
         try {
             session?.close()
+            val serverUrl = UncivGame.Current.onlineMultiplayer.multiplayerServer
+                .getServerUrl().trimEnd('/')
             session = client.webSocketSession {
-                url(getChatUrl())
+                url(getChatUrl(serverUrl))
                 userAgent(UncivGame.getUserAgent("Chat"))
                 header(
                     HttpHeaders.Authorization,
-                    UncivGame.Current.settings.multiplayer.getAuthHeader()
+                    UncivGame.Current.settings.multiplayer.getAuthHeader(serverUrl)
                 )
             }
 
@@ -184,14 +179,27 @@ object ChatWebSocket {
                     resetExponentialBackoff()
                 }
 
-                val gameIds = ChatStore.getGameIds()
-                    .union(UncivGame.Current.onlineMultiplayer.games.mapNotNull { it.preview?.gameId })
+                val currentServer = serverUrl
+                val gameIds = UncivGame.Current.onlineMultiplayer.games.mapNotNull { savedGame ->
+                    savedGame.preview?.takeIf { preview ->
+                        preview.gameParameters.multiplayerServerUrl
+                            ?.trimEnd('/')
+                            ?.let { it == currentServer }
+                            ?: true
+                    }?.gameId
+                }.toMutableSet()
+                UncivGame.Current.worldScreen?.gameInfo?.takeIf { gameInfo ->
+                    gameInfo.gameParameters.multiplayerServerUrl
+                        ?.trimEnd('/')
+                        ?.let { it == currentServer }
+                        ?: true
+                }?.gameId?.let(gameIds::add)
                 this.sendSerialized(Message.Join(gameIds.toList()))
 
                 while (this.isActive) {
                     val response = receiveDeserialized<Response>()
                     when (response) {
-                        is Response.Chat -> ChatStore.relayChatMessage(response)
+                        is Response.Chat -> ChatStore.relayChatMessage(response, serverUrl)
 
                         is Response.Error -> ChatStore.relayGlobalMessage(
                             "Error: [${response.message}]", "Server"

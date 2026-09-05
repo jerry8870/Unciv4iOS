@@ -5,6 +5,7 @@ import com.unciv.Constants
 import com.unciv.UncivGame
 import com.unciv.logic.multiplayer.Multiplayer
 import com.unciv.logic.multiplayer.MultiplayerGamePreview
+import com.unciv.logic.multiplayer.rethrowCancellationAfterCleanup
 import com.unciv.models.translations.tr
 import com.unciv.ui.components.extensions.formatShort
 import com.unciv.ui.components.extensions.toCheckBox
@@ -14,8 +15,9 @@ import com.unciv.ui.screens.basescreen.BaseScreen
 import com.unciv.ui.screens.savescreens.LoadGameScreen
 import com.unciv.utils.Concurrency
 import com.unciv.utils.launchOnGLThread
-import java.time.Duration
-import java.time.Instant
+import kotlinx.coroutines.CancellationException
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 
 object MultiplayerHelpers {
 
@@ -27,6 +29,10 @@ object MultiplayerHelpers {
         Concurrency.run("JoinMultiplayerGame") {
             try {
                 UncivGame.Current.onlineMultiplayer.downloadGame(selectedGame)
+            } catch (ex: CancellationException) {
+                rethrowCancellationAfterCleanup(ex) {
+                    Concurrency.runOnGLThread { loadingGamePopup.close() }
+                }
             } catch (ex: Exception) {
                 val (message) = LoadGameScreen.getLoadExceptionMessage(ex)
                 launchOnGLThread {
@@ -83,24 +89,33 @@ object MultiplayerHelpers {
         return descriptionText.toString().tr()
     }
 
-    fun showDropboxWarning(screen: BaseScreen) {
-        if (!Multiplayer.usesDropbox() || UncivGame.Current.settings.multiplayer.hideDropboxWarning) return
+    fun showMultiplayerServerWarning(screen: BaseScreen) {
+        val game = UncivGame.Current
+        if (game.settings.multiplayer.hideDropboxWarning) return
 
-        val dropboxWarning = Popup(screen)
-        dropboxWarning.addGoodSizedLabel(
+        val message = if (game.platformCapabilities.multiplayerServerRequiresHttps) {
+            "Online multiplayer servers are operated by third parties. " +
+                "The selected server receives your player ID, IP address, and game save data. " +
+                "Its availability, retention, deletion, and remote game saves are not guaranteed by Unciv. " +
+                "All players must use the same Unciv version and have the exact same versions of every mod installed."
+        } else {
+            if (!Multiplayer.usesDropbox()) return
             "You're currently using the default multiplayer server, which is based on a free Dropbox account. " +
-            "Because a lot of people use this, it is uncertain if you'll actually be able to access it consistently. " +
-            "Consider using a custom server instead."
-        ).colspan(2).row()
-        dropboxWarning.addButton("Open Documentation") {
+                "Because a lot of people use this, it is uncertain if you'll actually be able to access it consistently. " +
+                "Consider using a custom server instead."
+        }
+
+        val serverWarning = Popup(screen)
+        serverWarning.addGoodSizedLabel(message).colspan(2).row()
+        serverWarning.addButton("Open Documentation") {
             Gdx.net.openURI("${Constants.wikiURL}Other/Multiplayer/#hosting-a-multiplayer-server")
         }.colspan(2).row()
 
         val checkBox = "Don't show again".toCheckBox()
-        dropboxWarning.add(checkBox)
-        dropboxWarning.addCloseButton {
-            UncivGame.Current.settings.multiplayer.hideDropboxWarning = checkBox.isChecked
+        serverWarning.add(checkBox)
+        serverWarning.addCloseButton {
+            game.settings.multiplayer.hideDropboxWarning = checkBox.isChecked
         }
-        dropboxWarning.open()
+        serverWarning.open()
     }
 }

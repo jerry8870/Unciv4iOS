@@ -1,0 +1,13 @@
+Isang mabilis at maliit na open-source na muling pagpapatupad ng pinakasikat na laro ng pagbuo ng sibilisasyon!
+
+Buuin ang iyong sibilisasyon, magsaliksik ng mga teknolohiya, palawakin ang iyong mga lungsod, at talunin ang iyong mga kaaway!
+
+May kahilingan o bug? Gusto mo bang tumulong sa pagbuo? Makikita ang listahan ng gagawin para sa app sa https://github.com/jerry8870/Unciv4iOS
+
+May mga tanong o komento? Sumali sa amin sa Discord: https://discord.gg/bjrB4Xw ;)
+
+Gusto mo bang tumulong na isalin ang laro sa iyong wika? Tingnan ang https://yairm210.github.io/Unciv/Translating/Translating/
+
+Naghihintay ang mundo! Maitatayo mo ba ang iyong sibilisasyon bilang isang imperyong makatatagal sa pagsubok ng panahon?
+
+Kinakailangan ang pahintulot na “ganap na access sa network” para sa mga pag-download na sinimulan ng user at sa multiplayer na feature. Awtomatikong isinasama ng API na ginagamit para sa mga notification ng turno sa multiplayer ang lahat ng iba pang nakalistang pahintulot. Ginagamit ang mga pahintulot sa network para ilista at i-download ang mga mod, i-download ang musika, at i-upload/i-download ang mga larong multiplayer. Walang ibang komunikasyon sa internet na sinisimulan ng Unciv.

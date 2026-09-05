@@ -12,6 +12,7 @@ import com.unciv.models.translations.tr
 import com.unciv.ui.components.extensions.brighten
 import com.unciv.ui.components.extensions.toTextButton
 import com.unciv.ui.components.input.onClick
+import com.unciv.ui.components.widgets.UncivSlider
 import com.unciv.ui.components.widgets.WrappableLabel
 import com.unciv.ui.images.ImageGetter
 import com.unciv.ui.popups.ConfirmPopup
@@ -103,8 +104,7 @@ internal class DisplayTab(
     }
 
     private fun addUnitIconAlphaSlider() {
-        val getTipText: (Float) -> String = { "%.0f".format(it * 100) + "%" }
-        addSlider("Unit icon opacity", settings::unitIconOpacity, 0f, 1f, 0.1f, getTipText) {
+        addSlider("Unit icon opacity", settings::unitIconOpacity, 0f, 1f, 0.1f, UncivSlider::formatPercent) {
             GUI.setUpdateWorldOnNextRender()
         }
     }
@@ -119,6 +119,7 @@ internal class DisplayTab(
 
     private fun addScreenModeSelectBox() {
         val modes = Display.getScreenModes()
+        if (modes.isEmpty()) return
         val proxy = object {
             var value: ScreenMode
                 get() = modes[settings.screenMode] ?: modes.values.first()

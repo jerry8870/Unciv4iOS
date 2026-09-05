@@ -1,8 +1,8 @@
-Une réinterprétation open-source du plus célèbre jeu de gestion de civilisation - rapide, léger, sans pubs, et gratuit à jamais!
+Une réinterprétation open-source du plus célèbre jeu de gestion de civilisation - rapide et léger!
 
 Bâtissez votre empire, recherchez des technologies, étendez vos villes et éliminez vos adversaires!
 
-Des suggestions? Des bugs? Envie de contribuer? La liste des sujets ouverts se trouve sur https://github.com/yairm210/Unciv/issues .
+Des suggestions? Des bugs? Envie de contribuer? La liste des sujets ouverts se trouve sur https://github.com/jerry8870/Unciv4iOS .
 
 Des questions? Des commentaires? Rejoignez-nous sur le Discord d'Unciv https://discord.gg/bjrB4Xw ;)
 

@@ -3,7 +3,7 @@ package com.unciv.utils
 import yairm210.purity.annotations.Immutable
 import yairm210.purity.annotations.Pure
 import yairm210.purity.annotations.Readonly
-import java.time.Instant
+import org.threeten.bp.Instant
 import java.util.regex.Pattern
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.Returns

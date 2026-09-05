@@ -1,8 +1,8 @@
-An open-source reimplementation of the most famous civilization-building game ever - fast, small, no ads, free forever!
+An open-source reimplementation of the most famous civilization-building game ever - fast and small!
 
 Build your civilization, research technologies, expand your cities and defeat your foes!
 
-Requests? Bugs? Want to help development? Todo list for the application is https://github.com/yairm210/Unciv/issues
+Requests? Bugs? Want to help development? Todo list for the application is https://github.com/jerry8870/Unciv4iOS
 
 Questions? Comments? Join us on discord at https://discord.gg/bjrB4Xw ;)
 

@@ -50,11 +50,20 @@ object EventBus {
     }
 
     private fun getSuperClasses(kClass: KClass<*>): List<KClass<*>> {
-        if (kClass.supertypes.size == 1 && kClass.supertypes[0] == Any::class) return emptyList()
-        return kClass.supertypes
-            .map { it.classifier as KClass<*> }
-            .flatMap { getSuperClasses(it) + it }
-            .filter { it != Any::class }
+        val visited = hashSetOf<Class<*>>()
+        val result = mutableListOf<KClass<*>>()
+
+        fun collect(javaClass: Class<*>) {
+            if (javaClass == Any::class.java || !visited.add(javaClass)) return
+            javaClass.superclass?.let { collect(it) }
+            for (javaInterface in javaClass.interfaces) collect(javaInterface)
+            result += javaClass.kotlin
+        }
+
+        val javaClass = kClass.java
+        javaClass.superclass?.let { collect(it) }
+        for (javaInterface in javaClass.interfaces) collect(javaInterface)
+        return result
     }
 
     /** Removes all listeners whose WeakReference got collected and returns the ones that are still active */

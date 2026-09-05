@@ -2,6 +2,7 @@ package com.unciv.ui.popups.options
 
 import com.badlogic.gdx.Gdx
 import com.unciv.GUI
+import com.unciv.UncivGame
 import com.unciv.models.metadata.BaseRuleset
 import com.unciv.models.ruleset.RulesetCache
 import com.unciv.ui.components.extensions.areSecretKeysPressed
@@ -20,7 +21,10 @@ enum class OptionsPopupPages(
         override fun getIcon(language: String) = ImageGetter.getImage(iconPath + language)
     },
     Sound("Sound", "OtherIcons/Speaker", { SoundTab(this) }),
-    Multiplayer("Multiplayer", "OtherIcons/Multiplayer", { MultiplayerTab(this) }),
+    Multiplayer("Multiplayer", "OtherIcons/Multiplayer", { MultiplayerTab(this) }) {
+        override fun visible(withDebug: Boolean) =
+            !UncivGame.isCurrentInitialized() || UncivGame.Current.platformCapabilities.onlineMultiplayer
+    },
     Keys("Keys", "OtherIcons/Keyboard", { KeyBindingsTab(this, tabMinWidth - 40f) }) {   // 40 = padding
         override fun visible(withDebug: Boolean) = GUI.keyboardAvailable
     },

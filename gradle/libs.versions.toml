@@ -7,6 +7,9 @@ kotlin = "2.4.10"
 coroutines = "1.10.2"
 
 gdx = "1.14.2"
+robovm = "2.3.26"
+asm = "9.9"
+threetenbp = "1.7.1"
 discord = "v2.0.1"
 
 jna = "5.17.0"
@@ -47,6 +50,15 @@ gdx-tools = { group = "com.badlogicgames.gdx", name = "gdx-tools", version.ref =
 gdx-backend-desktop = { group = "com.badlogicgames.gdx", name = "gdx-backend-lwjgl3", version.ref = "gdx" }
 gdx-backend-android = { group = "com.badlogicgames.gdx", name = "gdx-backend-android", version.ref = "gdx" }
 gdx-backend-headless = { group = "com.badlogicgames.gdx", name = "gdx-backend-headless", version.ref = "gdx" }
+gdx-backend-robovm-metalangle = { group = "com.badlogicgames.gdx", name = "gdx-backend-robovm-metalangle", version.ref = "gdx" }
+
+robovm-gradle-plugin = { group = "com.mobidevelop.robovm", name = "robovm-gradle-plugin", version.ref = "robovm" }
+robovm-rt = { group = "com.mobidevelop.robovm", name = "robovm-rt", version.ref = "robovm" }
+robovm-cocoatouch = { group = "com.mobidevelop.robovm", name = "robovm-cocoatouch", version.ref = "robovm" }
+
+asm = { group = "org.ow2.asm", name = "asm", version.ref = "asm" }
+
+threetenbp = { group = "org.threeten", name = "threetenbp", version.ref = "threetenbp" }
 
 discord = { group = "com.github.MinnDevelopment", name = "java-discord-rpc", version.ref = "discord" }
 

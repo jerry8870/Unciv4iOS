@@ -61,6 +61,7 @@ import com.unciv.ui.screens.worldscreen.BackgroundActor
 import com.unciv.ui.screens.worldscreen.WorldScreen
 import com.unciv.ui.screens.worldscreen.mainmenu.WorldScreenMenuPopup
 import com.unciv.utils.Concurrency
+import com.unciv.utils.ONLINE_MULTIPLAYER_UNAVAILABLE
 import com.unciv.utils.launchOnGLThread
 import kotlinx.coroutines.Job
 import yairm210.purity.annotations.Pure
@@ -172,7 +173,15 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         column1.add(loadGameTable).row()
 
         val multiplayerTable = getMenuButton("Multiplayer", "OtherIcons/Multiplayer", KeyboardBinding.Multiplayer) {
-            game.pushScreen{ MultiplayerScreen() }
+            if (game.platformCapabilities.onlineMultiplayer) {
+                game.pushScreen { MultiplayerScreen() }
+            } else {
+                Popup(stage).apply {
+                    addGoodSizedLabel(ONLINE_MULTIPLAYER_UNAVAILABLE).row()
+                    addCloseButton()
+                    open()
+                }
+            }
         }
         column2.add(multiplayerTable).row()
 
@@ -181,10 +190,12 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         }
         column2.add(mapEditorScreenTable).row()
 
-        val modsTable = getMenuButton("Mods", "OtherIcons/Mods", KeyboardBinding.ModManager) {
-            game.pushScreen{ ModManagementScreen() }
+        if (game.platformCapabilities.onlineModManagement) {
+            val modsTable = getMenuButton("Mods", "OtherIcons/Mods", KeyboardBinding.ModManager) {
+                game.pushScreen{ ModManagementScreen() }
+            }
+            column2.add(modsTable).row()
         }
-        column2.add(modsTable).row()
 
         val optionsTable = getMenuButton("Options", "OtherIcons/Options", KeyboardBinding.MainMenuOptions)
             { openOptionsPopup() }
@@ -240,7 +251,10 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         rightSideButtons.setPosition(stage.width - buttonsPosFromEdge, buttonsPosFromEdge, Align.bottomRight)
         stage.addActor(rightSideButtons)
 
-        val versionLabel = "{Version} ${UncivGame.VERSION.text}".toLabel()
+        val displayVersion = game.displayBuildNumber
+            ?.let { "{Version} ${UncivGame.VERSION.text} ($it)" }
+            ?: "{Version} ${UncivGame.VERSION.text}"
+        val versionLabel = displayVersion.toLabel()
         versionLabel.setAlignment(Align.center)
         val versionTable = Table()
         versionTable.background = skinStrings.getUiBackground("MainMenuScreen/Version",

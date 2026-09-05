@@ -1,8 +1,8 @@
-Een herwerking van het meest beroemde spel over beschavingen bouwen ooit - snel, klein, geen advertenties, voor altijd gratis!
+Een herwerking van het meest beroemde spel over beschavingen bouwen ooit - snel en klein!
 
 Bouw je beschaving, ontdek technologieën, breidt je steden uit en versla je vijanden!
 
-Verzoeken? Bugs? Todo lijst voor de applicatie is https://github.com/yairm210/Unciv/issues, elk beetje help is welkom!
+Verzoeken? Bugs? Todo lijst voor de applicatie is https://github.com/jerry8870/Unciv4iOS, elk beetje help is welkom!
 
 Vragen? Opmerkingen? Gewoon verveeld? Vergezel ons op https://discord.gg/bjrB4Xw.
 

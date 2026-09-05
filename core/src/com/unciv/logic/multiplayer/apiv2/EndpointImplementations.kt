@@ -18,8 +18,8 @@ import io.ktor.http.*
 import io.ktor.util.network.*
 import java.io.IOException
 import java.security.SecureRandom
-import java.time.Duration
-import java.time.Instant
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 import java.util.UUID
 import kotlin.random.Random
 import kotlin.random.asKotlinRandom

@@ -1,8 +1,8 @@
-A valaha volt leghíresebb civilizációépítő játék nyílt forráskódú újraimplementációja – gyors, kis méretű, reklámok nélküli, és örökre ingyenes!
+A valaha volt leghíresebb civilizációépítő játék nyílt forráskódú újraimplementációja – gyors és kis méretű!
 
 Építsd fel civilizációdat, kutass technológiákat, fejleszd városaidat és győzd le az ellenfeleidet!
 
-Kérésed van vagy egy hibát találtál? Esetleg szeretnél segíteni a fejlesztésben? Az alkalmazás teendőlistája itt találod: https://github.com/yairm210/Unciv/issues
+Kérésed van vagy egy hibát találtál? Esetleg szeretnél segíteni a fejlesztésben? Az alkalmazás teendőlistája itt találod: https://github.com/jerry8870/Unciv4iOS
 
 Kérdésed van vagy el szeretnél mondani valamit? Csatlakozz hozzánk a Discordon: https://discord.gg/bjrB4Xw ;)
 

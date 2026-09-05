@@ -5,14 +5,6 @@ import yairm210.purity.annotations.InternalState
 import yairm210.purity.annotations.LocalState
 import yairm210.purity.annotations.Readonly
 import java.util.Objects
-import java.util.Spliterator.CONCURRENT
-import java.util.Spliterator.IMMUTABLE
-import java.util.Spliterator.NONNULL
-import java.util.Spliterator.SIZED
-import java.util.Spliterator.SUBSIZED
-import java.util.function.LongConsumer
-import java.util.stream.LongStream
-import java.util.stream.StreamSupport
 
 // A PriorityQueue<Long>, except that it minimizes memory allocations
 // 
@@ -348,53 +340,6 @@ class LongPriorityQueue(
         }
     }
 
-
-    @Readonly
-    fun spliterator() :Spliterator = Spliterator(-1, size-1, mutCounter)
-
-    @InternalState
-    inner class Spliterator(var index: Int, var endIndex: Int, val mutSnapshot: Int) : java.util.Spliterator.OfLong {
-       
-        override fun tryAdvance(action: LongConsumer?): Boolean {
-            if (mutSnapshot != mutCounter) {
-                throw ConcurrentModificationException("Priority queue modified during iteration.")
-            }
-            if (index >= endIndex) {
-                return false
-            }
-            ++index
-            action?.accept(queue[index])
-            return true
-        }
-
-        override fun trySplit(): Spliterator? {
-            if (mutSnapshot != mutCounter) {
-                throw ConcurrentModificationException("Priority queue modified during iteration.")
-            }
-            if (endIndex - index < 2) {
-                return null
-            }
-            val mid = (index + endIndex) / 2
-            val split = Spliterator(mid, endIndex, mutSnapshot)
-            endIndex = mid
-            return split
-        }
-
-        override fun estimateSize(): Long {
-            return endIndex - index.toLong()
-        }
-
-        override fun characteristics(): Int {
-            return SIZED.or(NONNULL).or(IMMUTABLE).or(CONCURRENT).or(SUBSIZED)
-        }
-    }
-
-    @Readonly
-    fun stream() : LongStream = StreamSupport.longStream(spliterator(), false)
-
-    @Readonly
-    fun parallelStream() : LongStream = stream().parallel()
-    
     companion object {
         interface Comparator {
             operator fun invoke(a: Long, b: Long): Int

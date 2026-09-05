@@ -1,8 +1,8 @@
-Malfermfonta reimplementado de la plej fama civilizaciokonstrua ludo de ĉiuj tempoj — rapida, malpeza, sen reklamoj, por ĉiam senpaga!
+Malfermfonta reimplementado de la plej fama civilizaciokonstrua ludo de ĉiuj tempoj — rapida kaj malpeza!
 
 Konstruu vian civilizacion, esploru teknologiojn, vastigu viajn urbojn kaj venku viajn malamikojn!
 
-Petoj? Cimoj? Ĉu vi volas helpi la disvolvon? Cimspurilo de la aplikaĵo <a href="https://github.com/yairm210/Unciv/issues">GitHub-temoj de Unciv</a>
+Petoj? Cimoj? Ĉu vi volas helpi la disvolvon? Cimspurilo de la aplikaĵo <a href="https://github.com/jerry8870/Unciv4iOS">GitHub-temoj de Unciv</a>
 
 Ĉu demandoj? Ĉu komentoj? Aliĝu al ni ĉe Discord ĉe <a href="https://discord.gg/bjrB4Xw">Unciv Discord</a> ;)
 

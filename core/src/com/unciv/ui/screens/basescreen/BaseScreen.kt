@@ -38,6 +38,8 @@ import com.unciv.ui.popups.options.OptionsPopupPages
 import com.unciv.ui.screens.civilopediascreen.CivilopediaScreen
 import com.unciv.ui.screens.mainmenuscreen.MainMenuScreen
 import com.unciv.ui.screens.worldscreen.WorldScreen
+import com.unciv.utils.Display
+import com.unciv.utils.SafeArea
 
 // Both `this is CrashScreen` and `this::createPopupBasedDispatcherVetoer` are flagged.
 // First - not a leak; second - passes out a pure function
@@ -47,6 +49,7 @@ abstract class BaseScreen : Screen {
 
     val game: UncivGame = UncivGame.Current
     val stage: Stage
+    private var safeArea: SafeArea
 
     protected val tutorialController by lazy { TutorialController(this) }
 
@@ -62,6 +65,8 @@ abstract class BaseScreen : Screen {
 
         /** The ExtendViewport sets the _minimum_(!) world size - the actual world size will be larger, fitted to screen/window aspect ratio. */
         stage = UncivStage(ExtendViewport(height, height))
+        safeArea = Display.getSafeArea(Gdx.graphics.width, Gdx.graphics.height)
+        applySafeArea()
 
         if (enableSceneDebug.active && this !is CrashScreen && this !is GameStartScreen)
             stage.setSceneDebugMode()
@@ -89,16 +94,32 @@ abstract class BaseScreen : Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
         stage.act()
+        // Font and ruleset-icon rendering may use framebuffers, whose end() resets the GL viewport.
+        stage.viewport.apply()
         stage.draw()
     }
 
     override fun resize(width: Int, height: Int) {
+        val resizedSafeArea = Display.getSafeArea(width, height)
         if (this !is RecreateOnResize) {
-            stage.viewport.update(width, height, true)
-        } else if (stage.viewport.screenWidth != width || stage.viewport.screenHeight != height) {
-            game.replaceCurrentScreen{ recreate() }
+            safeArea = resizedSafeArea
+            applySafeArea()
+        } else if (resizedSafeArea != safeArea) {
+            game.replaceCurrentScreen { recreate() }
         }
     }
+
+    private fun applySafeArea() {
+        stage.viewport.update(safeArea.width, safeArea.height, true)
+        stage.viewport.setScreenPosition(
+            stage.viewport.screenX + safeArea.x,
+            stage.viewport.screenY + safeArea.y
+        )
+        stage.viewport.apply(true)
+    }
+
+    protected fun hasSafeAreaChanged(width: Int, height: Int) =
+        Display.getSafeArea(width, height) != safeArea
 
     override fun pause() {}
 

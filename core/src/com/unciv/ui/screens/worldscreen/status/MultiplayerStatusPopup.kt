@@ -16,6 +16,7 @@ class MultiplayerStatusPopup(
 
     val pickerPane = PickerPane()
     var selectedGame: MultiplayerGamePreview? = null
+    private val gameList = GameList(::gameSelected)
 
     init {
         val pickerCell = add()
@@ -23,7 +24,6 @@ class MultiplayerStatusPopup(
             .minHeight(screen.stage.height * 0.5f)
             .maxHeight(screen.stage.height * 0.8f)
 
-        val gameList = GameList(::gameSelected)
         pickerPane.topTable.add(gameList)
         pickerPane.rightSideButton.setText("Load game".tr())
         pickerPane.closeButton.onClick(::close)
@@ -35,11 +35,13 @@ class MultiplayerStatusPopup(
                 MultiplayerHelpers.loadMultiplayerGame(screen, game)
             }
         }
+        closeListeners += gameList::dispose
     }
 
     private fun gameSelected(gameName: String) {
         val multiplayerGame = UncivGame.Current.onlineMultiplayer.multiplayerFiles.getGameByName(gameName)!!
         selectedGame = multiplayerGame
+        gameList.select(gameName)
         pickerPane.setRightSideButtonEnabled(true)
         pickerPane.rightSideButton.setText("Load [$gameName]".tr())
         pickerPane.descriptionLabel.setText(MultiplayerHelpers.buildDescriptionText(multiplayerGame))

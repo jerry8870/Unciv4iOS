@@ -46,7 +46,7 @@ class AutoPlayMenu(
             nextTurnButton.update()
             TurnManager(worldScreen.selectedGameView.civView.getCiv()).automateTurn()
             worldScreen.autoPlay.stopAutoPlay()
-            worldScreen.nextTurn()
+            worldScreen.nextTurn(fromAutoPlay = true)
         }
 
         if (worldScreen.selectedGameView.civView.getUnits().size + worldScreen.selectedGameView.civView.cities().size >= 30) {

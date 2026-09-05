@@ -22,7 +22,7 @@ object AndroidImagePacker {
     private fun getDefaultSettings() = TexturePacker.Settings().apply {
         // Apparently some chipsets, like NVIDIA Tegra 3 graphics chipset (used in Asus TF700T tablet),
         // don't support non-power-of-two texture sizes - kudos @yuroller!
-        // https://github.com/yairm210/Unciv/issues/1340
+        // https://github.com/jerry8870/Unciv4iOS
 
         /**
          * These should be as big as possible in order to accommodate ALL the images together in one big file.
@@ -32,7 +32,7 @@ object AndroidImagePacker {
          * Now here we come to what Fred Colon would call an Imp Arse.
          * On the one hand, certain tilesets (ahem 5hex ahem) are really big.
          * You wouldn't believe how hugely mindbogglingly big they are. So theoretically we should want all of their images to be together.
-         * HOWEVER certain chipsets (see https://github.com/yairm210/Unciv/issues/3330) only seem to support to up to 2048 width*height so this is maximum we can have.
+         * HOWEVER certain chipsets (see https://github.com/jerry8870/Unciv4iOS) only seem to support to up to 2048 width*height so this is maximum we can have.
          * Practically this means that big custom tilesets will have to reload the texture a lot when covering the map and so the
          *    panning on the map will tend to lag a lot :(
          *

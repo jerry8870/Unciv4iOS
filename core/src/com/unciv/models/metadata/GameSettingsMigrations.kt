@@ -1,7 +1,7 @@
 package com.unciv.models.metadata
 
 import com.badlogic.gdx.utils.JsonValue
-import java.time.Duration
+import org.threeten.bp.Duration
 
 private const val CURRENT_VERSION = 2
 

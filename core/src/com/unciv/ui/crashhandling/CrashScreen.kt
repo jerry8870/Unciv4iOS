@@ -10,6 +10,7 @@ import com.unciv.Constants
 import com.unciv.UncivGame
 import com.unciv.logic.files.UncivFiles
 import com.unciv.models.ruleset.RulesetCache
+import com.unciv.models.translations.tr
 import com.unciv.ui.components.extensions.addBorder
 import com.unciv.ui.components.extensions.setFontSize
 import com.unciv.ui.components.extensions.toLabel
@@ -97,10 +98,14 @@ class CrashScreen(val exception: Throwable) : BaseScreen() {
         val subIndent = baseIndent + indent // TO be one level more than the template string.
         /** We only need the indent after any new lines in each substitution itself. So this prepends to all lines, and then removes from the start. */
         fun String.prependIndentToOnlyNewLines(indent: String) = this.prependIndent(indent).removePrefix(indent)
+        val version = UncivGame.Current.displayBuildNumber
+            ?.let { "[${UncivGame.VERSION.text}] (Build [$it])".tr() }
+            ?: UncivGame.VERSION.toNiceString()
         /// The $lastScreenType substitution is the only one completely under the control of this class— Everything else can, in theory, have new lines in it due to containing strings or custom .toString behaviour with new lines (which… I think Table.toString or something actually does). So normalize indentation for basically everything.
         return """
             **Platform:** ${Gdx.app.type.toString().prependIndentToOnlyNewLines(subIndent)}
-            **Version:** ${UncivGame.VERSION.toNiceString().prependIndentToOnlyNewLines(subIndent)}
+            **Version:** ${version.prependIndentToOnlyNewLines(subIndent)}
+            **Source:** ${UncivGame.Current.sourceCodeUrl.prependIndentToOnlyNewLines(subIndent)}
             **Rulesets:** ${RulesetCache.keys.toString().prependIndentToOnlyNewLines(subIndent)}
             **Last Screen:** `$lastScreenType`
             **A-star pathing enabled:** ${UncivGame.Current.settings.useAStarPathfinding}

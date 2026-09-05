@@ -5,7 +5,9 @@ import com.badlogic.gdx.files.FileHandle
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.unciv.Constants
 import com.unciv.logic.files.UncivFiles
+import com.unciv.ui.components.extensions.setFontSize
 import com.unciv.ui.components.input.keyShortcuts
 import com.unciv.ui.components.input.onClick
 import com.unciv.ui.components.input.onDoubleClick
@@ -25,12 +27,20 @@ import kotlin.math.abs
  *  Allows interspersing decorations between the buttons (see [update]'s `beforeRowCallback` parameter).
  *
  *  @param existingSavesTable exists here for coder convenience. No need to touch.
+ *  @param buttonFontSize font size for each dynamically created file button.
  */
 open class VerticalFileListScrollPane(
-    protected val existingSavesTable: Table = Table()
+    protected val existingSavesTable: Table = Table(),
+    private val buttonFontSize: Int = Constants.defaultFontSize,
 ) : AutoScrollPane(existingSavesTable) {
 
-    private class FileHandleButton(val file: FileHandle, val index: Int) : TextButton(file.name(), BaseScreen.skin)
+    private class FileHandleButton(val file: FileHandle, val index: Int, fontSize: Int) : TextButton(file.name(), BaseScreen.skin) {
+        init {
+            label.setFontSize(fontSize)
+            label.setEllipsis(true)
+            labelCell.minWidth(0f)
+        }
+    }
 
     private val buttonIndex = ArrayList<FileHandleButton>()
 
@@ -83,7 +93,7 @@ open class VerticalFileListScrollPane(
                 buttonIndex.clear()
                 buttonIndex.ensureCapacity(saves.size)
                 for ((index, saveGameFile) in saves.withIndex()) {
-                    val button = FileHandleButton(saveGameFile, index)
+                    val button = FileHandleButton(saveGameFile, index, buttonFontSize)
                     buttonIndex.add(button)
                     button.onClick {
                         selectExistingSave(index)
@@ -93,7 +103,7 @@ open class VerticalFileListScrollPane(
                         onDoubleClickListener?.invoke(saveGameFile)
                     }
                     beforeRowCallback?.invoke(saveGameFile)
-                    existingSavesTable.add(button).pad(5f).row()
+                    existingSavesTable.add(button).growX().minWidth(0f).pad(5f).row()
                 }
             }
         }

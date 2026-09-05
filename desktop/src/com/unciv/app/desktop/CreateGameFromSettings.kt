@@ -64,7 +64,7 @@ object CreateGameFromSettings {
      *
      * @throws Exception if authentication fails with invalid credentials
      */
-    private fun setupMultiplayer(gameParameters: GameParameters, serverPassword: String) {
+    private suspend fun setupMultiplayer(gameParameters: GameParameters, serverPassword: String) {
         val gameSettings = UncivGame.Current.settings
         val multiplayerServerUrl = gameParameters.multiplayerServerUrl.toString()
         val userId = gameParameters.players[0].playerId
@@ -75,14 +75,19 @@ object CreateGameFromSettings {
 
         println("Multiplayer setup: server=$multiplayerServerUrl, userId=$userId")
 
-        UncivServerFileStorage.serverUrl = multiplayerServerUrl
-        UncivServerFileStorage.timeout = 30000
+        val fileStorage = UncivServerFileStorage(
+            serverUrl = multiplayerServerUrl,
+            authHeaderProvider = {
+                mapOf("Authorization" to gameSettings.multiplayer.getAuthHeader(multiplayerServerUrl))
+            },
+            transport = com.unciv.logic.multiplayer.storage.SimpleHttp(),
+        )
 
-        val authStatus = UncivServerFileStorage.checkAuthStatus(userId, serverPassword)
+        val authStatus = fileStorage.checkAuthStatus(userId, serverPassword)
         when (authStatus) {
             AuthStatus.UNREGISTERED -> {
                 println("User not registered, authenticating...")
-                UncivServerFileStorage.authenticate(userId, serverPassword)
+                fileStorage.authenticate(userId, serverPassword)
                 println("Authentication successful")
             }
             AuthStatus.VERIFIED -> {

@@ -77,8 +77,8 @@ interface MusicControls {
             }
         )
 
-        val getTipText: (Float) -> String = {
-            "%.0f".format(posToLength(it))
+        val getTipText = object : (Float) -> String {
+            override fun invoke(value: Float) = posToLength(value).toInt().tr()
         }
 
         add("Pause between tracks".tr()).left().fillX()

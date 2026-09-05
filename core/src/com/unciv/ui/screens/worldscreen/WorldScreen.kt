@@ -17,14 +17,21 @@ import com.unciv.logic.event.EventBus
 import com.unciv.logic.map.HexCoord
 import com.unciv.logic.map.MapVisualization
 import com.unciv.logic.multiplayer.MultiplayerGameUpdated
+import com.unciv.logic.multiplayer.PendingTurnPersistenceException
+import com.unciv.logic.multiplayer.PendingTurnUploadResolution
+import com.unciv.logic.multiplayer.PendingTurnUploadState
+import com.unciv.logic.multiplayer.TurnUploadUnconfirmedReason
 import com.unciv.logic.multiplayer.storage.FileStorageRateLimitReached
 import com.unciv.logic.multiplayer.storage.MultiplayerAuthException
+import com.unciv.logic.multiplayer.storage.MultiplayerFileNotFoundException
+import com.unciv.logic.multiplayer.storage.MultiplayerServer
 import com.unciv.logic.trade.TradeEvaluation
 import com.unciv.models.TutorialTrigger
 import com.unciv.models.metadata.GameSetupInfo
 import com.unciv.models.ruleset.Event
 import com.unciv.models.ruleset.tile.ResourceType
 import com.unciv.models.ruleset.unique.UniqueType
+import com.unciv.models.translations.tr
 import com.unciv.ui.components.extensions.centerX
 import com.unciv.ui.components.extensions.darken
 import com.unciv.ui.components.input.KeyShortcutDispatcherVeto
@@ -72,12 +79,18 @@ import com.unciv.utils.debug
 import com.unciv.utils.launchOnGLThread
 import com.unciv.utils.launchOnThreadPool
 import com.unciv.utils.withGLContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
+import org.jetbrains.annotations.VisibleForTesting
 import yairm210.purity.annotations.Readonly
 import java.util.Timer
 import kotlin.concurrent.timer
+
+@VisibleForTesting
+fun multiplayerUploadFailureReason(exception: Exception): String =
+    if (exception is UncivShowableException) exception.localizedMessage else "Unknown".tr()
 
 /**
  * Do not create this screen without seriously thinking about the implications: this is the single most memory-intensive class in the application.
@@ -103,6 +116,9 @@ class WorldScreen(
     /** Indicates that a game failed to upload, and needs to be uploaded */
     var failedUpload = false
         private set
+    private val pendingTurnUploadState = if (gameInfo.gameParameters.isOnlineMultiplayer) {
+        game.onlineMultiplayer.pendingTurnUploadStateFor(gameInfo)
+    } else PendingTurnUploadState()
 
     /** Selected civilization, used in spectator and replay mode, equals viewingCiv in ordinary games */
     var selectedCiv = viewingCiv
@@ -217,9 +233,18 @@ class WorldScreen(
         if (gameInfo.gameParameters.isOnlineMultiplayer && !gameInfo.isUpToDate)
             isPlayersTurn = false // until we're up to date, don't let the player do anything
 
+        if (pendingTurnUploadState.requiresRecovery()) {
+            failedUpload = true
+            isPlayersTurn = false
+        }
+
         if (gameInfo.gameParameters.isOnlineMultiplayer) {
             val gameId = gameInfo.gameId
-            events.receive(MultiplayerGameUpdated::class, { it.preview.gameId == gameId }) {
+            val serverUrl = gameInfo.gameParameters.multiplayerServerUrl?.trimEnd('/')
+            events.receive(MultiplayerGameUpdated::class, {
+                it.preview.gameId == gameId
+                    && it.preview.gameParameters.multiplayerServerUrl?.trimEnd('/') == serverUrl
+            }) {
                 if (isNextTurnUpdateRunning() || game.onlineMultiplayer.hasLatestGameState(gameInfo, it.preview)) {
                     return@receive
                 }
@@ -345,21 +370,37 @@ class WorldScreen(
     // We contain a map...
     override fun getShortcutDispatcherVetoer() = KeyShortcutDispatcherVeto.createTileGroupMapDispatcherVetoer()
 
-    private suspend fun loadLatestMultiplayerState(): Unit = coroutineScope {
+    private suspend fun loadLatestMultiplayerState(
+        replacePendingRecovery: Boolean = false,
+    ): Unit = coroutineScope {
         if (game.screen != this@WorldScreen) return@coroutineScope // User already went somewhere else
 
-        val loadingGamePopup = Popup(this@WorldScreen)
-        launchOnGLThread {
-            loadingGamePopup.addGoodSizedLabel("Loading latest game state...")
-            loadingGamePopup.open()
+        val loadingGamePopup = withGLContext {
+            Popup(this@WorldScreen).apply {
+                addGoodSizedLabel("Loading latest game state...")
+                open()
+            }
         }
 
         try {
             debug("loadLatestMultiplayerState current game: gameId: %s, turn: %s, curCiv: %s",
                 gameInfo.gameId, gameInfo.turns, gameInfo.currentPlayer)
-            val latestGame = game.onlineMultiplayer.multiplayerServer.downloadGame(gameInfo.gameId)
+            val multiplayerServer = game.onlineMultiplayer
+                .serverFor(gameInfo.gameParameters.multiplayerServerUrl)
+            val latestGame = if (replacePendingRecovery) {
+                multiplayerServer.tryDownloadVerifiedGame(gameInfo.gameId).apply {
+                    isUpToDate = true
+                }
+            } else multiplayerServer.downloadGame(gameInfo.gameId)
             debug("loadLatestMultiplayerState downloaded game: gameId: %s, turn: %s, curCiv: %s",
                 latestGame.gameId, latestGame.turns, latestGame.currentPlayer)
+            if (replacePendingRecovery) {
+                game.onlineMultiplayer.persistGamePreviewLocally(latestGame)
+                if (!game.files.autosaves.autoSave(latestGame)) {
+                    throw UncivShowableException("Could not persist the latest server state locally.")
+                }
+                pendingTurnUploadState.clear()
+            }
             if (viewingCiv.civID == latestGame.currentPlayer || viewingCiv.civID == Constants.spectator) {
                 game.notifyTurnStarted()
             }
@@ -367,6 +408,9 @@ class WorldScreen(
                 loadingGamePopup.close()
             }
             startNewScreenJob(latestGame, autoPlay)
+        } catch (ex: CancellationException) {
+            Concurrency.runOnGLThread { loadingGamePopup.close() }
+            throw ex
         } catch (ex: Throwable) {
             launchOnGLThread {
                 val (message) = LoadGameScreen.getLoadExceptionMessage(ex, "Couldn't download the latest game state!")
@@ -374,7 +418,7 @@ class WorldScreen(
                 loadingGamePopup.addGoodSizedLabel(message).colspan(2).row()
                 loadingGamePopup.addButton("Retry") {
                     launchOnThreadPool("Load latest multiplayer state after error") {
-                        loadLatestMultiplayerState()
+                        loadLatestMultiplayerState(replacePendingRecovery)
                     }
                 }.right()
                 loadingGamePopup.addButton("Main menu") {
@@ -598,96 +642,307 @@ class WorldScreen(
         fogOfWar = restoreState.fogOfWar
     }
 
-    fun nextTurn() {
+    private suspend fun requestMultiplayerAuthentication(
+        multiplayerServer: MultiplayerServer,
+    ): Boolean {
+        val authResult = CompletableDeferred<Boolean>()
+        withGLContext {
+            AuthPopup(this@WorldScreen, multiplayerServer, authResult::complete).open(true)
+        }
+        return authResult.await()
+    }
+
+    private suspend fun markTurnUploadUnconfirmed(
+        message: String,
+        exception: Exception? = null,
+        reason: TurnUploadUnconfirmedReason = TurnUploadUnconfirmedReason.UploadFailed,
+    ) {
+        withGLContext {
+            pendingTurnUploadState.markUnconfirmed(reason)
+            failedUpload = true
+            shouldUpdate = true
+            Popup(this@WorldScreen).apply {
+                addGoodSizedLabel(message).row()
+                if (exception != null) {
+                    addButton("Copy to clipboard") {
+                        Gdx.app.clipboard.contents = exception.stackTraceToString()
+                    }
+                }
+                addCloseButton()
+                open()
+            }
+        }
+    }
+
+    /** Called on the GL thread when the app returns to the foreground. */
+    internal fun resumeMultiplayerUploadState() {
+        if (pendingTurnUploadState.unconfirmedReason == null) return
+        failedUpload = true
         isPlayersTurn = false
         shouldUpdate = true
-        val progressBar = NextTurnProgress(nextTurnButton)
-        progressBar.start(this)
+    }
 
-        // on a separate thread so the user can explore their world while we're passing the turn
-        nextTurnUpdateJob = Concurrency.runOnNonDaemonThreadPool("NextTurn") {
-            debug("Next turn starting")
-            val startTime = System.currentTimeMillis()
-            val originalGameInfo = gameInfo
-            val gameInfoClone = originalGameInfo.clone()
-            gameInfoClone.setTransients()  // this can get expensive on large games, not the clone itself
-
-            progressBar.increment()
-
-            gameInfoClone.nextTurn(progressBar, true)
-
-            if (originalGameInfo.gameParameters.isOnlineMultiplayer) {
-                // outer try-catch for non-auth exceptions
+    private suspend fun uploadPendingTurn(gameInfo: GameInfo, previewOnly: Boolean = false): Boolean {
+        if (!isActiveWorldScreen()) {
+            pendingTurnUploadState.ensureUnconfirmed(TurnUploadUnconfirmedReason.UploadFailed)
+            return false
+        }
+        val multiplayerServer = game.onlineMultiplayer
+            .serverFor(gameInfo.gameParameters.multiplayerServerUrl)
+        while (true) {
+            if (!isActiveWorldScreen()) {
+                pendingTurnUploadState.ensureUnconfirmed(TurnUploadUnconfirmedReason.UploadFailed)
+                return false
+            }
+            var backgroundTaskExpired = false
+            val needsAuthentication = try {
+                val backgroundTask = game.beginMultiplayerUploadBackgroundTask {
+                    pendingTurnUploadState.markBackgroundTaskExpired()
+                }
                 try {
-                    // keep retrying if upload fails AND reauthentication succeeds
-                    var retryUpload: Boolean
-                    do {
+                    if (backgroundTask?.isExpired == true) {
+                        backgroundTaskExpired = true
+                        false
+                    } else try {
+                        game.onlineMultiplayer.withTurnUploadContinuation {
+                            if (previewOnly) game.onlineMultiplayer.updateGamePreview(gameInfo)
+                            else game.onlineMultiplayer.updateGame(gameInfo)
+                        }
+                        false
+                    } catch (_: MultiplayerAuthException) {
+                        true
+                    }
+                } finally {
+                    backgroundTaskExpired = backgroundTask?.isExpired == true
+                    backgroundTask?.finish()
+                }
+            } catch (ex: CancellationException) {
+                throw ex
+            } catch (ex: Exception) {
+                val message = if (backgroundTaskExpired) {
+                    "Turn upload is unconfirmed because its background time expired. Retry after returning to the game."
+                } else if (ex is FileStorageRateLimitReached) {
+                    "Server limit reached! Please wait for [${ex.limitRemainingSeconds}] seconds before retrying."
+                } else {
+                    "Turn upload is unconfirmed. Reason: [${multiplayerUploadFailureReason(ex)}]"
+                }
+                markTurnUploadUnconfirmed(
+                    message,
+                    ex,
+                    if (backgroundTaskExpired) TurnUploadUnconfirmedReason.BackgroundTaskExpired
+                    else TurnUploadUnconfirmedReason.UploadFailed,
+                )
+                return false
+            }
+
+            if (backgroundTaskExpired) {
+                markTurnUploadUnconfirmed(
+                    "Turn upload is unconfirmed because its background time expired. Retry after returning to the game.",
+                    reason = TurnUploadUnconfirmedReason.BackgroundTaskExpired,
+                )
+                return false
+            }
+            if (!needsAuthentication) return true
+
+            val authenticationSucceeded = try {
+                requestMultiplayerAuthentication(multiplayerServer)
+            } catch (ex: Exception) {
+                markTurnUploadUnconfirmed("Could not open authentication. The turn upload is unconfirmed.", ex)
+                return false
+            }
+            if (!authenticationSucceeded) {
+                markTurnUploadUnconfirmed(
+                    "Authentication was cancelled. The turn upload is unconfirmed.",
+                    reason = TurnUploadUnconfirmedReason.AuthenticationCancelled,
+                )
+                return false
+            }
+        }
+    }
+
+    private suspend fun resolvePendingTurnBeforeRetry(): PendingTurnUploadResolution? {
+        val pendingTurn = pendingTurnUploadState.get() ?: return null
+        val multiplayerServer = game.onlineMultiplayer
+            .serverFor(pendingTurn.pendingGame.gameParameters.multiplayerServerUrl)
+        while (true) {
+            try {
+                val serverGame = multiplayerServer
+                    .tryDownloadVerifiedGame(pendingTurn.pendingGame.gameId)
+                val serverPreview = multiplayerServer
+                    .let { server ->
                         try {
-                            game.onlineMultiplayer.updateGame(gameInfoClone)
-                            // upload succeeded
-                            retryUpload = false
-                        } catch (_: MultiplayerAuthException) {
-                            // true only if authentication succeeds (the popup permits retries)
-                            // false only if user closes the auth popup or the popup init crashes
-                            val authResult = CompletableDeferred<Boolean>()
-                            launchOnGLThread {
-                                try {
-                                    AuthPopup(this@WorldScreen, authResult::complete).open(true)
-                                } catch (ex: Exception) {
-                                    // GL thread crashed during AuthPopup init, let's wrap up
-                                    authResult.complete(false)
-                                    // ensure exception is passed to crash handler
-                                    throw ex
-                                }
-                            }
-                            retryUpload = authResult.await()
-                        }
-                    } while (retryUpload)
-                } catch (ex: Exception) { // non-auth exceptions
-                    when (ex) {
-                        is FileStorageRateLimitReached -> {
-                            val message = "Server limit reached! Please wait for [${ex.limitRemainingSeconds}] seconds"
-                            launchOnGLThread {
-                                val cantUploadNewGamePopup = Popup(this@WorldScreen)
-                                cantUploadNewGamePopup.addGoodSizedLabel(message).row()
-                                cantUploadNewGamePopup.addCloseButton()
-                                cantUploadNewGamePopup.open()
-                            }
-                        }
-                        else -> {
-                            val message = "Could not upload game! Reason: [${ex.message ?: "Unknown"}]"
-                            launchOnGLThread {
-                                val cantUploadNewGamePopup = Popup(this@WorldScreen)
-                                cantUploadNewGamePopup.addGoodSizedLabel(message).row()
-                                cantUploadNewGamePopup.addButton("Copy to clipboard") {
-                                    Gdx.app.clipboard.contents = ex.stackTraceToString()
-                                }
-                                cantUploadNewGamePopup.addCloseButton()
-                                cantUploadNewGamePopup.open()
-                            }
+                            server.tryDownloadGamePreview(pendingTurn.pendingGame.gameId)
+                        } catch (_: MultiplayerFileNotFoundException) {
+                            null
+                        } catch (ex: MultiplayerAuthException) {
+                            throw ex
+                        } catch (ex: CancellationException) {
+                            throw ex
+                        } catch (_: Exception) {
+                            // The strictly verified full game is authoritative. A missing, malformed,
+                            // or unreadable preview can be repaired idempotently from that full game.
+                            null
                         }
                     }
+                return pendingTurn.resolve(
+                    serverGame,
+                    serverPreview,
+                    checksumVerifiedBeforeSourceStamping = true,
+                )
+            } catch (_: MultiplayerAuthException) {
+                val authenticationSucceeded = try {
+                    requestMultiplayerAuthentication(multiplayerServer)
+                } catch (ex: Exception) {
+                    markTurnUploadUnconfirmed("Could not open authentication. The turn upload is unconfirmed.", ex)
+                    return null
+                }
+                if (!authenticationSucceeded) {
+                    markTurnUploadUnconfirmed(
+                        "Authentication was cancelled. The turn upload is unconfirmed.",
+                        reason = TurnUploadUnconfirmedReason.AuthenticationCancelled,
+                    )
+                    return null
+                }
+            } catch (_: MultiplayerFileNotFoundException) {
+                if (pendingTurn.isCreationIntent) return PendingTurnUploadResolution.RetryUpload
+                markTurnUploadUnconfirmed(
+                    "The server no longer has the game. The pending turn was kept and was not uploaded."
+                )
+                return null
+            } catch (ex: CancellationException) {
+                throw ex
+            } catch (ex: Exception) {
+                markTurnUploadUnconfirmed(
+                    "Could not confirm the previous turn upload. Reason: [${multiplayerUploadFailureReason(ex)}]",
+                    ex,
+                )
+                return null
+            }
+        }
+    }
 
-                    this@WorldScreen.failedUpload = true // Since we couldn't push the new game clone, then we need to try again
-                    this@WorldScreen.shouldUpdate = true
+    fun nextTurn(fromAutoPlay: Boolean = false) {
+        if (!isActiveWorldScreen()) return
+        val autoPlayAuthorized = fromAutoPlay && autoPlay.consumeTurnEndAuthorization()
+        if (!isPlayersTurn && !failedUpload && !autoPlayAuthorized) return
+        if (!pendingTurnUploadState.tryStartTurnProcessing()) return
+        isPlayersTurn = false
+        shouldUpdate = true
+        val progressBar = try {
+            NextTurnProgress(nextTurnButton).also { it.start(this) }
+        } catch (ex: Throwable) {
+            pendingTurnUploadState.finishTurnProcessing()
+            throw ex
+        }
+
+        // on a separate thread so the user can explore their world while we're passing the turn
+        val updateJob = try {
+            Concurrency.runOnNonDaemonThreadPool("NextTurn") {
+                debug("Next turn starting")
+                val startTime = System.currentTimeMillis()
+                val originalGameInfo = gameInfo
+                val existingPendingTurn = pendingTurnUploadState.get()
+
+                progressBar.increment()
+
+                if (!isActiveWorldScreen()) return@runOnNonDaemonThreadPool
+
+                if (pendingTurnUploadState.hasRecoveryFailure()) {
+                    loadLatestMultiplayerState(replacePendingRecovery = true)
                     return@runOnNonDaemonThreadPool
                 }
+
+                val pendingTurn = try {
+                    pendingTurnUploadState.getOrCreate(originalGameInfo) {
+                        originalGameInfo.clone().apply {
+                            setTransients()  // this can get expensive on large games, not the clone itself
+                            nextTurn(progressBar, true)
+                        }
+                    }
+                } catch (ex: PendingTurnPersistenceException) {
+                    markTurnUploadUnconfirmed(ex.message, ex)
+                    return@runOnNonDaemonThreadPool
+                }
+                if (!isActiveWorldScreen()) {
+                    pendingTurnUploadState.ensureUnconfirmed(TurnUploadUnconfirmedReason.UploadFailed)
+                    return@runOnNonDaemonThreadPool
+                }
+                val gameInfoClone = pendingTurn.pendingGame
+
+                if (originalGameInfo.gameParameters.isOnlineMultiplayer) {
+                    if (existingPendingTurn != null) {
+                        when (resolvePendingTurnBeforeRetry() ?: return@runOnNonDaemonThreadPool) {
+                            PendingTurnUploadResolution.Confirmed -> Unit
+                            PendingTurnUploadResolution.RetryUpload ->
+                                if (!uploadPendingTurn(gameInfoClone)) return@runOnNonDaemonThreadPool
+                            PendingTurnUploadResolution.RepairPreview ->
+                                if (!uploadPendingTurn(gameInfoClone, previewOnly = true)) return@runOnNonDaemonThreadPool
+                            PendingTurnUploadResolution.ServerChanged -> {
+                                loadLatestMultiplayerState(replacePendingRecovery = true)
+                                return@runOnNonDaemonThreadPool
+                            }
+                            PendingTurnUploadResolution.InvalidServerGame -> {
+                                markTurnUploadUnconfirmed(
+                                    "The server's full game could not be verified. " +
+                                        "The pending turn was kept and was not uploaded."
+                                )
+                                return@runOnNonDaemonThreadPool
+                            }
+                        }
+                    } else if (!uploadPendingTurn(gameInfoClone)) {
+                        return@runOnNonDaemonThreadPool
+                    }
+                }
+
+                if (game.gameInfo != originalGameInfo) // while this was turning we loaded another game
+                    return@runOnNonDaemonThreadPool
+
+                if (gameInfo.gameParameters.isOnlineMultiplayer) {
+                    try {
+                        game.onlineMultiplayer.persistGamePreviewLocally(gameInfoClone)
+                        if (!game.files.autosaves.autoSave(gameInfoClone)) {
+                            throw UncivShowableException("Could not persist the confirmed turn locally.")
+                        }
+                    } catch (ex: Exception) {
+                        markTurnUploadUnconfirmed(
+                            "The server confirmed the turn, but it could not be saved locally. Retry to recover safely.",
+                            ex,
+                        )
+                        return@runOnNonDaemonThreadPool
+                    }
+                }
+
+                pendingTurnUploadState.clear()
+                failedUpload = false
+                debug("Next turn took %sms", System.currentTimeMillis() - startTime)
+
+                // Special case: when you are the only alive human player, the game will always be up to date
+                if (gameInfo.gameParameters.isOnlineMultiplayer
+                        && gameInfoClone.civilizations.count { it.isAlive() && it.playerType == PlayerType.Human } == 1) {
+                    gameInfoClone.isUpToDate = true
+                }
+
+                progressBar.increment()
+
+                startNewScreenJob(gameInfoClone, autoPlay)
             }
-
-            if (game.gameInfo != originalGameInfo) // while this was turning we loaded another game
-                return@runOnNonDaemonThreadPool
-
-            debug("Next turn took %sms", System.currentTimeMillis() - startTime)
-
-            // Special case: when you are the only alive human player, the game will always be up to date
-            if (gameInfo.gameParameters.isOnlineMultiplayer
-                    && gameInfoClone.civilizations.count { it.isAlive() && it.playerType == PlayerType.Human } == 1) {
-                gameInfoClone.isUpToDate = true
+        } catch (ex: Throwable) {
+            pendingTurnUploadState.finishTurnProcessing()
+            throw ex
+        }
+        nextTurnUpdateJob = updateJob
+        updateJob.invokeOnCompletion {
+            // Crash-handling launchers may consume CancellationException and report normal
+            // completion. A remaining pending turn is therefore itself the failure signal.
+            pendingTurnUploadState.ensureUnconfirmed(TurnUploadUnconfirmedReason.UploadFailed)
+            Concurrency.runOnGLThread("NextTurnFinished") {
+                pendingTurnUploadState.finishTurnProcessing()
+                // Expiration can race with resume(), and a failure repaint can race with this
+                // completion. Re-read the durable state only after releasing the single-flight gate.
+                val visibleWorldScreen = game.worldScreen ?: this@WorldScreen
+                visibleWorldScreen.resumeMultiplayerUploadState()
+                visibleWorldScreen.shouldUpdate = true
             }
-
-            progressBar.increment()
-
-            startNewScreenJob(gameInfoClone, autoPlay)
         }
     }
 
@@ -713,9 +968,11 @@ class WorldScreen(
     
     @Readonly
     internal fun isNextTurnUpdateRunning(): Boolean {
-        val job = nextTurnUpdateJob
-        return job != null && job.isActive
+        return pendingTurnUploadState.isTurnProcessing()
     }
+
+    @Readonly
+    private fun isActiveWorldScreen() = game.gameInfo === gameInfo && game.worldScreen === this
 
     private fun updateGameplayButtons() {
         nextTurnButton.update()
@@ -747,10 +1004,19 @@ class WorldScreen(
     }
 
     private fun updateMultiplayerStatusButton() {
+        val multiplayer = game.onlineMultiplayerOrNull
+        if (multiplayer == null) {
+            statusButtons.multiplayerStatusButton = null
+            return
+        }
+
         if (gameInfo.gameParameters.isOnlineMultiplayer || game.settings.multiplayer.statusButtonInSinglePlayer) {
             if (statusButtons.multiplayerStatusButton != null) return
             statusButtons.multiplayerStatusButton = MultiplayerStatusButton(this,
-                game.onlineMultiplayer.multiplayerFiles.getGameByGameId(gameInfo.gameId))
+                multiplayer.multiplayerFiles.getGameByGameId(
+                    gameInfo.gameId,
+                    gameInfo.gameParameters.multiplayerServerUrl,
+                ))
         } else {
             if (statusButtons.multiplayerStatusButton == null) return
             statusButtons.multiplayerStatusButton = null
@@ -762,7 +1028,7 @@ class WorldScreen(
 
     override fun resize(width: Int, height: Int) {
         resizeDeferTimer?.cancel()
-        if (resizeDeferTimer == null && stage.viewport.screenWidth == width && stage.viewport.screenHeight == height) return
+        if (resizeDeferTimer == null && !hasSafeAreaChanged(width, height)) return
         resizeDeferTimer = timer("Resize", daemon = true, 500L, Long.MAX_VALUE) {
             resizeDeferTimer?.cancel()
             resizeDeferTimer = null

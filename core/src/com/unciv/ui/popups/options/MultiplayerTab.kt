@@ -5,12 +5,15 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.unciv.Constants
 import com.unciv.logic.files.IMediaFinder.LabeledSounds
 import com.unciv.logic.multiplayer.Multiplayer
 import com.unciv.logic.multiplayer.storage.AuthStatus
 import com.unciv.logic.multiplayer.storage.FileStorageRateLimitReached
 import com.unciv.logic.multiplayer.storage.MultiplayerAuthException
+import com.unciv.logic.multiplayer.storage.MultiplayerServer
+import com.unciv.models.translations.tr
 import com.unciv.ui.audio.SoundPlayer
 import com.unciv.ui.components.extensions.addSeparator
 import com.unciv.ui.components.extensions.isEnabled
@@ -24,10 +27,10 @@ import com.unciv.ui.popups.AuthPopup
 import com.unciv.ui.popups.Popup
 import com.unciv.utils.Concurrency
 import com.unciv.utils.launchOnGLThread
-import java.net.URI
-import java.time.temporal.ChronoUnit
+import org.threeten.bp.temporal.ChronoUnit
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.CancellationException
 
 internal class MultiplayerTab(
     optionsPopup: OptionsPopup
@@ -92,10 +95,22 @@ internal class MultiplayerTab(
         val multiplayerServerTextField = UncivTextField("Server address", textToShowForOnlineMultiplayerAddress)
         multiplayerServerTextField.setTextFieldFilter { _, c -> c !in " \r\n\t\\" }
         multiplayerServerTextField.programmaticChangeEvents = true
+        var passwordTextField: UncivTextField? = null
+        var setPasswordButton: TextButton? = null
+        var connectionCheckInFlight = false
+        var validatedServerUrl: String? = try {
+            MultiplayerServer.validateServerUrl(
+                multiplayerServerTextField.text,
+                game.platformCapabilities,
+            )
+        } catch (_: Exception) {
+            null
+        }
         val serverIpTable = Table()
 
         serverIpTable.add("Server address".toLabel().onClick {
-            multiplayerServerTextField.text = Gdx.app.clipboard.contents
+            if (!connectionCheckInFlight)
+                multiplayerServerTextField.text = Gdx.app.clipboard.contents
         }).colspan(2).padBottom(Constants.defaultFontSize / 2.0f).row()
 
         val errorTextField = "".toLabel(Color.RED)
@@ -105,43 +120,59 @@ internal class MultiplayerTab(
 
         multiplayerServerTextField.onChange {
             fixTextFieldUrlOnType(multiplayerServerTextField)
+            passwordTextField?.text = ""
 
-        try {
-            // we can't trim on 'fixTextFieldUrlOnType' for reasons
-            val uri = URI(multiplayerServerTextField.text.trimEnd('/'))
-            if (uri.scheme != "http" && uri.scheme != "https") {
-                throw Error("URL must start with http:// or https://")
-            }
-
-                // URL has stricter validation than URI
-                settings.multiplayer.setServer(uri.toURL().toString())
+            try {
+                val validatedServer = MultiplayerServer.validateServerUrl(
+                    multiplayerServerTextField.text,
+                    game.platformCapabilities,
+                )
+                settings.multiplayer.setServer(validatedServer)
+                validatedServerUrl = validatedServer
                 errorTextField.isVisible = false
                 multiplayerServerTextField.color = Color.GREEN
             } catch (ex: Throwable) {
-                errorTextField.setText(ex.message)
+                validatedServerUrl = null
+                errorTextField.setText(ex.localizedMessage)
                 errorTextField.isVisible = true
                 multiplayerServerTextField.color = Color.RED
             }
 
-            val isCustomServer = Multiplayer.usesCustomServer()
-            connectionToServerButton.isEnabled = isCustomServer
+            val isCustomServer = validatedServerUrl != null && Multiplayer.usesCustomServer()
+            connectionToServerButton.isEnabled = validatedServerUrl != null && isCustomServer
+            setPasswordButton?.isEnabled = validatedServerUrl != null
 
             for (refreshSelect in toUpdate) refreshSelect.update(isCustomServer)
         }
+        connectionToServerButton.isEnabled =
+            validatedServerUrl != null && Multiplayer.usesCustomServer()
 
         serverIpTable.add(multiplayerServerTextField)
             .minWidth(optionsPopup.stageToShowOn.width / 3).padRight(Constants.defaultFontSize.toFloat()).growX()
 
         serverIpTable.add(connectionToServerButton.onClick {
+            val targetUrl = validatedServerUrl ?: return@onClick
+            val targetServer = game.onlineMultiplayer.serverFor(targetUrl)
+            connectionCheckInFlight = true
+            connectionToServerButton.isEnabled = false
+            multiplayerServerTextField.isDisabled = true
             val popup = Popup(optionsPopup.stageToShowOn).apply {
                 addGoodSizedLabel("Awaiting response...").row()
                 open(true)
             }
 
-            successfullyConnectedToServer { connectionSuccess, authSuccess ->
+            successfullyConnectedToServer(targetServer) { connectionSuccess, authSuccess ->
+                connectionCheckInFlight = false
+                multiplayerServerTextField.isDisabled = false
+                connectionToServerButton.isEnabled =
+                    validatedServerUrl != null && Multiplayer.usesCustomServer()
+                if (validatedServerUrl != targetUrl) {
+                    popup.close()
+                    return@successfullyConnectedToServer
+                }
                 if (authSuccess == false) {
                     popup.close()
-                    AuthPopup(optionsPopup.stageToShowOn) { success ->
+                    AuthPopup(optionsPopup.stageToShowOn, targetServer) { success ->
                         popup.apply {
                             reuseWith(if (success) "Success!" else "Failed!", true)
                             open(true)
@@ -155,6 +186,7 @@ internal class MultiplayerTab(
                 }
     
                 if (connectionSuccess) {
+                    mpServer.setFeatureSet(targetServer.getFeatureSet())
                     // because multiplayer server url can get autopatched during isAilve test
                     multiplayerServerTextField.text = settings.multiplayer.getServer()
                 }
@@ -162,43 +194,60 @@ internal class MultiplayerTab(
         }).row()
 
         if (mpServer.getFeatureSet().authVersion > 0) {
-            val passwordTextField = UncivTextField(
-                "Password", mpSettings.getCurrentServerPassword().orEmpty()
-            )
-            passwordTextField.isPasswordMode = true
-            val setPasswordButton = "Set password".toTextButton()
+            val passwordField = UncivTextField("Password").apply { isPasswordMode = true }
+            passwordTextField = passwordField
+            val passwordButton = "Set password".toTextButton()
+            setPasswordButton = passwordButton
+            passwordButton.isEnabled = validatedServerUrl != null
 
             serverIpTable.add("Set password".toLabel()).padTop(16f).colspan(2).row()
-            serverIpTable.add(passwordTextField).colspan(2).growX().padBottom(8f).row()
+            serverIpTable.add(passwordField).colspan(2).growX().padBottom(8f).row()
 
             // initially assume no password
             val authStatusLabel = "Set a password to secure your userId".toLabel()
 
-            val password = mpSettings.getCurrentServerPassword()
+            val validationServerUrl = mpSettings.getServer()
+            val password = mpSettings.getPassword(validationServerUrl)
             if (password != null) {
-                authStatusLabel.setText("Validating your authentication status...")
+                val validationServer = game.onlineMultiplayer.serverFor(validationServerUrl)
+                authStatusLabel.setText("Validating your authentication status...".tr())
                 Concurrency.run {
-                    val userId = mpSettings.getUserId()
-                    val authStatus = mpServer.fileStorage()
-                        .checkAuthStatus(userId, password)
+                    try {
+                        val userId = mpSettings.getUserId()
+                        val authStatus = validationServer.fileStorage()
+                            .checkAuthStatus(userId, password)
 
-                    val newAuthStatusText = when (authStatus) {
-                        AuthStatus.UNAUTHORIZED -> "Your current password was rejected from the server"
-                        AuthStatus.UNREGISTERED -> "You userId is unregistered! Set password to secure your userId"
-                        AuthStatus.VERIFIED -> "Your current password has been succesfully verified"
-                        AuthStatus.UNKNOWN -> "Your authentication status could not be determined"
-                    }
+                        val newAuthStatusText = when (authStatus) {
+                            AuthStatus.UNAUTHORIZED -> "Your current password was rejected from the server"
+                            AuthStatus.UNREGISTERED -> "You userId is unregistered! Set password to secure your userId"
+                            AuthStatus.VERIFIED -> "Your current password has been succesfully verified"
+                            AuthStatus.UNKNOWN -> "Your authentication status could not be determined"
+                        }
 
-                    Concurrency.runOnGLThread {
-                        authStatusLabel.setText(newAuthStatusText)
+                        Concurrency.runOnGLThread {
+                            authStatusLabel.setText(newAuthStatusText.tr())
+                        }
+                    } catch (ex: CancellationException) {
+                        Concurrency.runOnGLThread {
+                            authStatusLabel.setText("Authentication validation was cancelled".tr())
+                        }
+                        throw ex
+                    } catch (_: Exception) {
+                        Concurrency.runOnGLThread {
+                            authStatusLabel.setText("Your authentication status could not be determined".tr())
+                        }
                     }
                 }
             }
 
             val passwordStatusTable = Table().apply {
                 add(authStatusLabel)
-                add(setPasswordButton.onClick {
-                    setPassword(passwordTextField.text, optionsPopup)
+                add(passwordButton.onClick {
+                    val serverUrl = validatedServerUrl ?: return@onClick
+                    val targetServer = game.onlineMultiplayer.serverFor(serverUrl).apply {
+                        setFeatureSet(mpServer.getFeatureSet())
+                    }
+                    setPassword(passwordField.text, serverUrl, targetServer, optionsPopup)
                 }).padLeft(16f)
             }
 
@@ -231,16 +280,21 @@ internal class MultiplayerTab(
         return turnCheckerSelect
     }
 
-    private fun successfullyConnectedToServer(action: (Boolean, Boolean?) -> Unit) {
+    private fun successfullyConnectedToServer(
+        targetServer: MultiplayerServer,
+        action: (Boolean, Boolean?) -> Unit,
+    ) {
         Concurrency.run("TestIsAlive") {
             try {
-                val connectionSuccess = mpServer.checkServerStatus()
+                val connectionSuccess = targetServer.checkServerStatus()
                 var authSuccess: Boolean? = null
                 if (connectionSuccess) {
                     try {
-                        authSuccess = mpServer.authenticate(null)
+                        authSuccess = targetServer.authenticate(null)
                     } catch (_: MultiplayerAuthException) {
                         authSuccess = false
+                    } catch (ex: CancellationException) {
+                        throw ex
                     } catch (_: Throwable) {
                         // We ignore the exception here, because we handle the failed auth onGLThread
                     }
@@ -248,6 +302,11 @@ internal class MultiplayerTab(
                 launchOnGLThread {
                     action(connectionSuccess, authSuccess)
                 }
+            } catch (ex: CancellationException) {
+                Concurrency.runOnGLThread {
+                    action(false, null)
+                }
+                throw ex
             } catch (_: Exception) {
                 launchOnGLThread {
                     action(false, false)
@@ -256,7 +315,12 @@ internal class MultiplayerTab(
         }
     }
 
-    private fun setPassword(password: String, optionsPopup: OptionsPopup) {
+    private fun setPassword(
+        password: String,
+        serverUrl: String,
+        targetServer: MultiplayerServer,
+        optionsPopup: OptionsPopup,
+    ) {
         if (password.isBlank())
             return
 
@@ -270,24 +334,24 @@ internal class MultiplayerTab(
             return
         }
 
-        if (mpServer.getFeatureSet().authVersion == 0) {
+        if (targetServer.getFeatureSet().authVersion == 0) {
             popup.reuseWith("This server does not support authentication", true)
             return
         }
 
-        successfullySetPassword(password) { success, ex ->
+        successfullySetPassword(password, targetServer) { success, ex ->
             if (success) {
                 popup.reuseWith(
-                    "Password set successfully for server [${mpSettings.getServer()}]",
+                    "Password set successfully for server [$serverUrl]",
                     true
                 )
             } else {
                 if (ex is MultiplayerAuthException) {
-                    AuthPopup(optionsPopup.stageToShowOn) { authSuccess ->
+                    AuthPopup(optionsPopup.stageToShowOn, targetServer) { authSuccess ->
                         // If auth was successful, try to set password again
                         if (authSuccess) {
                             popup.close()
-                            setPassword(password, optionsPopup)
+                            setPassword(password, serverUrl, targetServer, optionsPopup)
                         } else {
                             popup.reuseWith("Failed to set password!", true)
                         }
@@ -305,13 +369,22 @@ internal class MultiplayerTab(
         }
     }
 
-    private fun successfullySetPassword(password: String, action: (Boolean, Exception?) -> Unit) {
+    private fun successfullySetPassword(
+        password: String,
+        targetServer: MultiplayerServer,
+        action: (Boolean, Exception?) -> Unit,
+    ) {
         Concurrency.run("SetPassword") {
             try {
-                val setSuccess = mpServer.setPassword(password)
+                val setSuccess = targetServer.setPassword(password)
                 launchOnGLThread {
                     action(setSuccess, null)
                 }
+            } catch (ex: CancellationException) {
+                Concurrency.runOnGLThread {
+                    action(false, ex)
+                }
+                throw ex
             } catch (ex: Exception) {
                 launchOnGLThread {
                     action(false, ex)

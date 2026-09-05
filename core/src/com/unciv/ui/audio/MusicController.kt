@@ -5,10 +5,15 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.audio.Music
 import com.badlogic.gdx.files.FileHandle
 import com.unciv.UncivGame
-import com.unciv.logic.multiplayer.storage.DropBox
+import com.unciv.logic.UncivShowableException
 import com.unciv.models.metadata.GameSettings
 import com.unciv.utils.Concurrency
+import com.unciv.utils.DEFAULT_MUSIC_DOWNLOAD_UNAVAILABLE
 import com.unciv.utils.Log
+import java.io.FilterInputStream
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URI
 import java.util.EnumSet
 import java.util.Timer
 import kotlin.concurrent.thread
@@ -31,8 +36,11 @@ class MusicController {
         private val musicLocation = FileType.Local
         private const val musicPath = "music"
         private const val modPath = "mods"
-        /** Dropbox path of default download offer */
-        private const val musicFallbackLocation = "/music/thatched-villagers.mp3"
+        /** Public artist-hosted source of the default download offer. */
+        private const val musicFallbackUrl =
+            "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Thatched%20Villagers.mp3"
+        /** Location used by older downloads. */
+        private const val oldMusicFallbackLocation = "/music/thatched-villagers.mp3"
         /** Name we save the default download offer to */
         private const val musicFallbackLocalName = "music/Thatched Villagers - Ambient.mp3"
         /** baseVolume has range 0.0-1.0, which is multiplied by this for the API */
@@ -55,6 +63,33 @@ class MusicController {
                 Gdx.files.external(path)
             else UncivGame.Current.files.getLocalFile(path)
 
+        private fun openDefaultMusicStream(): FilterInputStream {
+            val connection = URI.create(musicFallbackUrl).toURL().openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 30_000
+                connection.readTimeout = 30_000
+                connection.instanceFollowRedirects = false
+                connection.setRequestProperty("User-Agent", UncivGame.getUserAgent("Music download"))
+                val status = connection.responseCode
+                if (status !in 200..299) {
+                    throw IOException("Default music server returned HTTP $status")
+                }
+                return object : FilterInputStream(connection.inputStream) {
+                    override fun close() {
+                        try {
+                            super.close()
+                        } finally {
+                            connection.disconnect()
+                        }
+                    }
+                }
+            } catch (exception: Exception) {
+                connection.disconnect()
+                throw exception
+            }
+        }
+
         // These are replaced when we _know_ we're attached to Gdx.audio.update
         private var needOwnTimer = true
         private var ticksPerSecond = ticksPerSecondOwn
@@ -62,7 +97,7 @@ class MusicController {
     }
 
     init {
-        val oldFallbackFile = UncivGame.Current.files.getLocalFile(musicFallbackLocation.removePrefix("/"))
+        val oldFallbackFile = UncivGame.Current.files.getLocalFile(oldMusicFallbackLocation.removePrefix("/"))
         if (oldFallbackFile.exists()) {
             val newFallbackFile = UncivGame.Current.files.getLocalFile(musicFallbackLocalName)
             if (!newFallbackFile.exists())
@@ -350,6 +385,7 @@ class MusicController {
         .flatMap { it.list().asSequence() }
         // ensure only normal files with common sound extension
         .filter { it.exists() && !it.isDirectory && it.extension() in gdxSupportedFileExtensions }
+        .filter { !it.extension().equals("ogg", ignoreCase = true) || UncivGame.Current.platformCapabilities.oggAudio }
 
     /** Choose adequate entry from [getAllMusicFiles] */
     private fun chooseFile(
@@ -560,7 +596,9 @@ class MusicController {
             // currently only the main menu resumes, and then it's perfect:
             state = ControllerState.Playing
             current!!.play()
-        } else if (state == ControllerState.Cleanup || state == ControllerState.Pause) {
+        } else if (state == ControllerState.Cleanup
+                || state == ControllerState.Pause
+                || state == ControllerState.PauseOnShutdown) {
             chooseTrack()
         }
 
@@ -593,8 +631,13 @@ class MusicController {
 
     /** Download Thatched Villagers */
     fun downloadDefaultFile() {
-        val file = DropBox.downloadFile(musicFallbackLocation)
-        getFile(musicFallbackLocalName).write(file, false)
+        if (UncivGame.isCurrentInitialized()
+                && !UncivGame.Current.platformCapabilities.defaultMusicDownload) {
+            throw UncivShowableException(DEFAULT_MUSIC_DOWNLOAD_UNAVAILABLE)
+        }
+        openDefaultMusicStream().use { stream ->
+            getFile(musicFallbackLocalName).write(stream, false)
+        }
     }
 
     /** @return `true` if Thatched Villagers is present */

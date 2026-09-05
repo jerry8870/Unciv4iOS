@@ -15,7 +15,14 @@ class TileLayerBorders(tileGroup: TileGroup, size: Float) : TileLayer(tileGroup,
         var images: List<Image>,
         var isLeftConcave: Boolean = false,
         var isRightConcave: Boolean = false,
-    )
+    ) {
+        override fun hashCode(): Int {
+            var result = images.hashCode()
+            result = 31 * result + if (isLeftConcave) 1231 else 1237
+            result = 31 * result + if (isRightConcave) 1231 else 1237
+            return result
+        }
+    }
 
     private var previousTileOwner: ForeignCivView? = null
     private val borderSegments = HashMap<TileView, BorderSegment>()

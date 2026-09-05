@@ -1,1 +1,13 @@
-Ukuqaliswa kabusha komdlalo wokwakha impucuko owaziwa kakhulu owake waba khona - okusheshayo, okuncane, akukho zikhangiso, mahhala kuze kube phakade!
+Ukuqaliswa kabusha komthombo ovulekile komdlalo wokwakha impucuko owaziwa kakhulu owake waba khona - okusheshayo nokuncane!
+
+Yakha impucuko yakho, cwaninga ubuchwepheshe, nweba amadolobha akho futhi unqobe izitha zakho!
+
+Unezicelo? Uthole amaphutha? Ufuna ukusiza ekuthuthukiseni? Uhlu lwemisebenzi yohlelo lokusebenza luku-https://github.com/jerry8870/Unciv4iOS
+
+Unemibuzo noma imibono? Joyina i-Discord yethu ku-https://discord.gg/bjrB4Xw ;)
+
+Ufuna ukusiza ukuhumushela umdlalo olimini lwakho? Bheka https://yairm210.github.io/Unciv/Translating/Translating/
+
+Umhlaba ulindile! Ingabe uzokwakha impucuko yakho ibe umbuso oyomelana novivinyo lwesikhathi?
+
+Imvume "yokufinyelela ngokugcwele kunethiwekhi" iyadingeka ekulandeni okuqalwa ngumsebenzisi nasesicini sabadlali abaningi. Zonke ezinye izimvume ezisohlwini zifakwa ngokuzenzakalela yi-API esetshenziselwa izaziso zamathuba omdlalo wabadlali abaningi. Izimvume zenethiwekhi zisetshenziselwa ukufaka ohlwini ama-mod, ukulanda ama-mod, ukulanda umculo kanye nokulayisha noma ukulanda imidlalo yabadlali abaningi. Unciv ayiqalisi okunye ukuxhumana nge-inthanethi.

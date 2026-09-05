@@ -30,13 +30,14 @@ import com.badlogic.gdx.backends.android.DefaultAndroidFiles
 import com.unciv.logic.GameInfo
 import com.unciv.logic.files.UncivFiles
 import com.unciv.logic.multiplayer.storage.FileStorageRateLimitReached
+import com.unciv.logic.multiplayer.storage.MultiplayerFileNotFoundException
 import com.unciv.logic.multiplayer.storage.MultiplayerServer
 import com.unciv.models.metadata.GameSettings.GameSettingsMultiplayer
 import java.io.FileNotFoundException
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.io.Writer
-import java.time.Duration
+import org.threeten.bp.Duration
 import java.util.GregorianCalendar
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
@@ -336,11 +337,10 @@ class MultiplayerTurnCheckWorker(appContext: Context, workerParams: WorkerParame
                     Log.i(LOG_TAG, "doWork FileStorageRateLimitReached ${ex.message}")
                     // We just break here as the configured delay is probably enough to wait for the rate limit anyway
                     break
-                } catch (ex: FileNotFoundException) {
-                    Log.i(LOG_TAG, "doWork FileNotFoundException ${ex.message}")
-                    // FileNotFoundException is thrown by OnlineMultiplayer().tryDownloadGamePreview(gameId)
-                    // and indicates that there is no game preview present for this game
-                    // in the dropbox so we should not check for this game in the future anymore
+                } catch (ex: Exception) {
+                    if (ex !is FileNotFoundException && ex !is MultiplayerFileNotFoundException) throw ex
+                    Log.i(LOG_TAG, "doWork ${ex::class.simpleName} ${ex.message}")
+                    // Both legacy and API-v1 storage use a not-found exception for a missing preview.
                     notFoundRemotely[gameId] = true
                 }
             }

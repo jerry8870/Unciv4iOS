@@ -8,15 +8,17 @@ import com.unciv.logic.multiplayer.GameUpdateResult.Type.CHANGED
 import com.unciv.logic.multiplayer.GameUpdateResult.Type.FAILURE
 import com.unciv.logic.multiplayer.GameUpdateResult.Type.UNCHANGED
 import com.unciv.logic.multiplayer.storage.FileStorageRateLimitReached
-import com.unciv.logic.multiplayer.storage.MultiplayerServer
 import com.unciv.ui.audio.SoundPlayer
 import com.unciv.ui.components.extensions.isLargerThan
 import com.unciv.utils.debug
 import com.unciv.utils.launchOnGLThread
 import com.unciv.utils.withGLContext
 import kotlinx.coroutines.coroutineScope
-import java.time.Duration
-import java.time.Instant
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 
@@ -86,10 +88,17 @@ class MultiplayerGamePreview(
             EventBus.send(MultiplayerGameUpdateStarted(name))
         }
         val throttleInterval = if (forceUpdate) Duration.ZERO else getUpdateThrottleInterval()
-        val updateResult = if (forceUpdate || needsUpdate()) {
-            attemptAction(lastOnlineUpdate, onUnchanged, onError, ::update)
-        } else {
-            throttle(lastOnlineUpdate, throttleInterval, onUnchanged, onError, ::update)
+        val updateResult = try {
+            if (forceUpdate || needsUpdate()) {
+                attemptAction(lastOnlineUpdate, onUnchanged, onError, ::update)
+            } else {
+                throttle(lastOnlineUpdate, throttleInterval, onUnchanged, onError, ::update)
+            }
+        } catch (ex: CancellationException) {
+            withContext(NonCancellable) {
+                withGLContext { EventBus.send(MultiplayerGameUpdateCancelled(name)) }
+            }
+            throw ex
         }
         val updateEvent = when {
             updateResult.type == CHANGED && updateResult.status != null -> {
@@ -115,12 +124,18 @@ class MultiplayerGamePreview(
     private suspend fun update(): GameUpdateResult {
         val curPreview = if (preview != null) preview!! else loadPreviewFromFile()
         val serverIdentifier = curPreview.gameParameters.multiplayerServerUrl
-        val newPreview = MultiplayerServer(serverIdentifier).tryDownloadGamePreview(curPreview.gameId)
-        if (newPreview.turns == curPreview.turns && newPreview.currentPlayer == curPreview.currentPlayer) return GameUpdateResult(UNCHANGED, newPreview)
+        val newPreview = UncivGame.Current.onlineMultiplayer.serverFor(serverIdentifier)
+            .tryDownloadGamePreview(curPreview.gameId)
+        val gameStateUnchanged = newPreview.turns == curPreview.turns
+            && newPreview.currentPlayer == curPreview.currentPlayer
+        val newSource = newPreview.gameParameters.multiplayerServerUrl?.trimEnd('/')
+        val currentSource = curPreview.gameParameters.multiplayerServerUrl?.trimEnd('/')
+        val sourceUnchanged = newSource == currentSource
+        if (gameStateUnchanged && sourceUnchanged) return GameUpdateResult(UNCHANGED, newPreview)
         
         setNewPreview(newPreview)
         
-        return GameUpdateResult(CHANGED, newPreview)
+        return GameUpdateResult(if (gameStateUnchanged) UNCHANGED else CHANGED, newPreview)
     }
 
     suspend fun updatePreview(gameInfo: GameInfoPreview) {
@@ -140,7 +155,10 @@ class MultiplayerGamePreview(
         if (!gameInfoPreview.isUsersTurn()) return
         if (UncivGame.isDeepLinkedGameLoading()) return // This means we already arrived here through a turn notification, no need to notify again
 
-        val sound = if (UncivGame.isCurrentGame(gameInfoPreview.gameId)) {
+        val sound = if (UncivGame.isCurrentGame(
+                gameInfoPreview.gameId,
+                gameInfoPreview.gameParameters.multiplayerServerUrl,
+            )) {
             UncivGame.Current.settings.multiplayer.currentGameTurnNotificationSound
         } else {
             UncivGame.Current.settings.multiplayer.otherGameTurnNotificationSound

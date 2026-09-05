@@ -20,7 +20,10 @@ private val smallButtonStyle = SmallButtonStyle()
 class ChatButton(val worldScreen: WorldScreen) : IconTextButton(
     "Chat", ImageGetter.getImage("OtherIcons/Chat"), 23
 ) {
-    private val chat = ChatStore.getChatByGameId(worldScreen.gameInfo.gameId)
+    private val chat = ChatStore.getChatByGameId(
+        worldScreen.gameInfo.gameId,
+        worldScreen.gameInfo.gameParameters.multiplayerServerUrl,
+    )
 
     private val badge = "".toTextButton(smallButtonStyle).apply {
         disable()
@@ -84,9 +87,31 @@ class ChatButton(val worldScreen: WorldScreen) : IconTextButton(
      * Toggles [ChatButton] if needed and also starts or stops [ChatWebSocket] as required.
      */
     fun refreshVisibility() {
+        // Keep this before every ChatWebSocket reference. Accessing that object initializes its CIO client.
+        if (!UncivGame.Current.platformCapabilities.multiplayerChat) {
+            isVisible = false
+            return
+        }
+
+        val multiplayer = UncivGame.Current.onlineMultiplayerOrNull
+        if (multiplayer == null) {
+            isVisible = false
+            return
+        }
+
+        val gameServer = worldScreen.gameInfo.gameParameters.multiplayerServerUrl?.trimEnd('/')
+        val currentServer = UncivGame.Current.settings.multiplayer.getServer().trimEnd('/')
+        if (gameServer != null && gameServer != currentServer) {
+            // Chat still has one process-wide socket and authentication context. Never send a
+            // pinned game's id to a different server selected later in global settings.
+            ChatWebSocket.stop()
+            isVisible = false
+            return
+        }
+
         isVisible = if (
             worldScreen.gameInfo.gameParameters.isOnlineMultiplayer &&
-            UncivGame.Current.onlineMultiplayer.multiplayerServer.getFeatureSet().chatVersion > 0
+            multiplayer.multiplayerServer.getFeatureSet().chatVersion > 0
         ) {
             ChatWebSocket.requestMessageSend(
                 Message.Join(listOf(worldScreen.gameInfo.gameId)),

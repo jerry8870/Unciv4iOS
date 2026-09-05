@@ -9,16 +9,18 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 
 object UncivKtor {
-    val client = HttpClient(CIO) {
-        followRedirects = true
-        install(HttpRequestRetry) {
-            maxRetries = 3
-            retryOnException()
-        }
-        install(BodyProgress)
+    val client by lazy {
+        HttpClient(CIO) {
+            followRedirects = true
+            install(HttpRequestRetry) {
+                maxRetries = 3
+                retryOnException()
+            }
+            install(BodyProgress)
 
-        defaultRequest {
-            userAgent(UncivGame.getUserAgent())
+            defaultRequest {
+                userAgent(UncivGame.getUserAgent())
+            }
         }
     }
 
