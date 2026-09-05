@@ -117,10 +117,12 @@ changes cannot reroute an existing game's reads, writes, or authentication.
 Server passwords use the existing settings storage
 (`secureMultiplayerServerPasswords=false`).
 
+Mod management is enabled through the existing GitHub catalog, URL download,
+installation, update, and missing-Mod download flows.
+
 Chat, API v2, Dropbox storage, background polling, push notifications, deep
-links, HTTP/LAN servers, Mod management, and default music download stay
-disabled on iOS. The main-menu Mods entry is hidden; existing local data is not
-deleted. Foreground
+links, HTTP/LAN servers, and default music download stay
+disabled on iOS. Foreground multiplayer
 downloads are cancelled on backgrounding; an in-flight turn PUT gets only a
 finite UIKit background-task window and remains explicitly unconfirmed if that
 window expires.

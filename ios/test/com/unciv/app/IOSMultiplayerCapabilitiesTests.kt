@@ -17,7 +17,7 @@ class IOSMultiplayerCapabilitiesTests {
 
         assertTrue(capabilities.onlineMultiplayer)
         assertFalse(capabilities.multiplayerChat)
-        assertFalse(capabilities.onlineModManagement)
+        assertTrue(capabilities.onlineModManagement)
         assertTrue(capabilities.multiplayerServerRequiresHttps)
         assertTrue(capabilities.multiplayerApiV1Only)
         assertFalse(capabilities.secureMultiplayerServerPasswords)
