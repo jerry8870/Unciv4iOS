@@ -19,7 +19,6 @@ internal object ModManagementStyle {
     val muted = Color.valueOf("adbdce")
     val accent = Color.valueOf("e1bd78")
     val line = Color.valueOf("33465b")
-    val success = Color.valueOf("99d6b5")
     val danger = Color.valueOf("f1a8a2")
 
     fun fill(color: Color) = ImageGetter.getWhiteDotDrawable().tint(color)

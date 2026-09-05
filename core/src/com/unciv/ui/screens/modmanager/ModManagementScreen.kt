@@ -21,7 +21,6 @@ import com.unciv.models.ruleset.RulesetCache
 import com.unciv.models.ruleset.unique.UniqueType
 import com.unciv.models.tilesets.TileSetCache
 import com.unciv.models.translations.tr
-import com.unciv.ui.components.extensions.disable
 import com.unciv.ui.components.extensions.enable
 import com.unciv.ui.components.extensions.isEnabled
 import com.unciv.ui.components.extensions.toLabel
@@ -670,8 +669,6 @@ class ModManagementScreen private constructor(
     private fun installedButtonAction(mod: ModUIData, button: ModDecoratedButton) {
         rightSideButton.isVisible = true
         revealDetails(mod.name)
-        ModManagementStyle.styleButton(rightSideButton)
-        rightSideButton.style.fontColor = ModManagementStyle.danger
         actionHint.setText("Choose this mod in the new game settings.".tr())
 
         syncInstalledSelected(mod.name, button)
