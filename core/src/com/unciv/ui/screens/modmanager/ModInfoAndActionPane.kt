@@ -27,8 +27,7 @@ import java.io.IOException
 import kotlin.math.max
 
 internal class ModInfoAndActionPane(
-    private val description: Label,
-    private val contentWidth: Float
+    private val description: Label
 ) : Table() {
     private val repoUrlToPreviewImage = HashMap<String, Texture?>()
     private val imageHolder = Table()
@@ -102,19 +101,19 @@ internal class ModInfoAndActionPane(
         }
         heading.add(imageHolder).size(64f).top().padRight(16f)
         heading.add(title).growX().minWidth(0f)
-        add(heading).width(contentWidth).padBottom(16f).row()
+        add(heading).growX().minWidth(0f).padBottom(16f).row()
 
         updateSize(modSize)
         add(sizeLabel).padBottom(15f).row()
 
         if (updatedAt.isNotEmpty()) {
             val updateString = "{Updated}: " + updatedAt.parseDate().formatDate()
-            add(ModManagementStyle.label(updateString, 18, ModManagementStyle.muted)).width(contentWidth).row()
+            add(ModManagementStyle.label(updateString, 18, ModManagementStyle.muted)).growX().minWidth(0f).row()
         }
         add(com.unciv.ui.images.ImageGetter.getWhiteDot().apply { color = ModManagementStyle.line })
             .height(1f).pad(4f, 0f, 16f, 0f).row()
-        add(ModManagementStyle.label("About this mod", 22)).width(contentWidth).row()
-        add(description).width(contentWidth).padBottom(16f).row()
+        add(ModManagementStyle.label("About this mod", 22)).growX().minWidth(0f).row()
+        add(description).growX().minWidth(0f).padBottom(16f).row()
 
         if (repoUrl.isNotEmpty()) {
             val githubButton = ModManagementStyle.button("Open Github page")
@@ -123,7 +122,7 @@ internal class ModInfoAndActionPane(
                 Gdx.app.clipboard.contents = repoUrl
                 ToastPopup("Link copied to clipboard", stage)
             }
-            add(githubButton).width(contentWidth).minHeight(58f).row()
+            add(githubButton).growX().minWidth(0f).minHeight(58f).row()
         }
     }
 
@@ -141,13 +140,13 @@ internal class ModInfoAndActionPane(
             add("Permanent audiovisual mod".toCheckBox(startsOutChecked, changeAction).apply {
                 label.wrap = true
                 labelCell.minWidth(0f).growX()
-            }).width(contentWidth).minHeight(58f).row()
+            }).growX().minWidth(0f).minHeight(58f).row()
     }
 
     fun addUpdateModButton(modInfo: ModUIData): TextButton? {
         if (!modInfo.hasUpdate) return null
         val updateModTextbutton = ModManagementStyle.button("Update mod", primary = true)
-        add(updateModTextbutton).width(contentWidth).minHeight(58f).row()
+        add(updateModTextbutton).growX().minWidth(0f).minHeight(58f).row()
         return updateModTextbutton
     }
 

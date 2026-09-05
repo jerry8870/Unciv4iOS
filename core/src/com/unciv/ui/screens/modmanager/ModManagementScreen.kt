@@ -2,6 +2,7 @@ package com.unciv.ui.screens.modmanager
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
@@ -103,7 +104,7 @@ class ModManagementScreen private constructor(
     private val scrollInstalledMods = ModsScrollPane(installedModsTable)
     private val onlineModsTable = Table().apply { top(); defaults().growX().padBottom(6f) }
     private val scrollOnlineMods = ModsScrollPane(onlineModsTable)
-    private val modActionTable = ModInfoAndActionPane(modDescriptionLabel, detailWidth - 40f)
+    private val modActionTable = ModInfoAndActionPane(modDescriptionLabel)
     private val scrollActionTable = ModsScrollPane(modActionTable)
     private val optionsManager = ModManagementOptions(this)
 
@@ -164,10 +165,22 @@ class ModManagementScreen private constructor(
         if (game.platformCapabilities.onlineModManagement) reloadOnlineMods()
     }
 
+    override fun render(delta: Float) {
+        val background = ModManagementStyle.background
+        Gdx.gl.glClearColor(background.r, background.g, background.b, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        stage.act()
+        stage.viewport.apply()
+        stage.draw()
+    }
+
     private fun initLayout() {
         val header = Table()
         val title = "Mods".toLabel(ModManagementStyle.text, fontSize = 28)
-        val linkButton = getDownloadFromUrlButton().also { ModManagementStyle.styleButton(it) }
+        val linkButton = getDownloadFromUrlButton().also {
+            it.isEnabled = game.platformCapabilities.onlineModManagement
+            ModManagementStyle.styleButton(it)
+        }
         val tabs = Table().apply {
             background = ModManagementStyle.rounded(ModManagementStyle.surface)
             pad(4f)
@@ -485,7 +498,8 @@ class ModManagementScreen private constructor(
 
     private fun TextButton.setStartingDownload() {
         setText("Downloading...".tr())
-        disable()
+        isDisabled = true
+        touchable = Touchable.disabled
     }
     private fun TextButton.setFinishedDownload() {
         // Note while setStartingDownload is called from three places, this one is only used once.
@@ -666,6 +680,8 @@ class ModManagementScreen private constructor(
         rightSideButton.setText((if (mod.ruleset.folderLocation == null) "Installed" else "Delete").tr())
         // Don't let the player think he can delete Vanilla and G&K rulesets
         rightSideButton.isEnabled = mod.ruleset.folderLocation!=null
+        ModManagementStyle.styleButton(rightSideButton)
+        rightSideButton.style.fontColor = ModManagementStyle.danger
         showModDescription(mod.name)
         rightSideButton.clearActivationActions(ActivationTypes.Tap)  // clearListeners would also kill mouseover styling
         rightSideButton.onClick {
