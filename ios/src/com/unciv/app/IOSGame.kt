@@ -29,7 +29,7 @@ class IOSGame @JvmOverloads constructor(
         onlineMultiplayer = true,
         multiplayerChat = false,
         defaultMusicDownload = false,
-        onlineModManagement = false,
+        onlineModManagement = true,
         multiplayerServerRequiresHttps = true,
         multiplayerApiV1Only = true,
         secureMultiplayerServerPasswords = runtimeFeatures.secureMultiplayerPasswords,
@@ -45,6 +45,8 @@ class IOSGame @JvmOverloads constructor(
 
     override fun createMultiplayerV1Transport(): MultiplayerV1Transport =
         IOSMultiplayerV1Transport()
+
+    override fun createModHttpClientEngine() = IOSModHttpClientEngine()
 
     override fun beginMultiplayerUploadBackgroundTask(onExpired: () -> Unit): MultiplayerBackgroundTask =
         IOSMultiplayerBackgroundTask(onExpired)

@@ -3,6 +3,7 @@ package com.unciv.ui.screens.modmanager
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.utils.GdxRuntimeException
@@ -16,8 +17,6 @@ import com.unciv.models.translations.tr
 import com.unciv.ui.components.extensions.UncivDateFormat.formatDate
 import com.unciv.ui.components.extensions.UncivDateFormat.parseDate
 import com.unciv.ui.components.extensions.toCheckBox
-import com.unciv.ui.components.extensions.toLabel
-import com.unciv.ui.components.extensions.toTextButton
 import com.unciv.ui.components.input.onClick
 import com.unciv.ui.components.input.onRightClick
 import com.unciv.ui.popups.ToastPopup
@@ -27,10 +26,12 @@ import com.unciv.utils.Log
 import java.io.IOException
 import kotlin.math.max
 
-internal class ModInfoAndActionPane : Table() {
+internal class ModInfoAndActionPane(
+    private val description: Label
+) : Table() {
     private val repoUrlToPreviewImage = HashMap<String, Texture?>()
     private val imageHolder = Table()
-    private val sizeLabel = "".toLabel()
+    private val sizeLabel = ModManagementStyle.label("", 18, ModManagementStyle.muted)
     private var isBuiltin = false
     private var currentRepoName = ""
 
@@ -38,7 +39,8 @@ internal class ModInfoAndActionPane : Table() {
     private var enableVisualCheckBox = false
 
     init {
-        defaults().pad(10f)
+        top()
+        defaults().growX().minWidth(0f).padBottom(12f)
     }
 
     /** Recreate the information part of the right-hand column
@@ -90,32 +92,37 @@ internal class ModInfoAndActionPane : Table() {
             isLocal -> addLocalPreviewImage(modName)
             else -> addPreviewImage(modName, repoUrl, defaultBranch, avatarUrl)
         }
-        add(imageHolder).row()
-
-        if (author.isNotEmpty())
-            add("Author: [$author]".toLabel()).row()
+        val heading = Table()
+        val title = Table().apply {
+            add(ModManagementStyle.label(cleanModName(modName), 30)).growX().minWidth(0f).row()
+            if (author.isNotEmpty())
+                add(ModManagementStyle.label("Author: [$author]", 18, ModManagementStyle.muted))
+                    .growX().minWidth(0f).padTop(8f)
+        }
+        heading.add(imageHolder).size(64f).top().padRight(16f)
+        heading.add(title).growX().minWidth(0f)
+        add(heading).growX().minWidth(0f).padBottom(16f).row()
 
         updateSize(modSize)
         add(sizeLabel).padBottom(15f).row()
 
-        // offer link to open the repo itself in a browser
+        if (updatedAt.isNotEmpty()) {
+            val updateString = "{Updated}: " + updatedAt.parseDate().formatDate()
+            add(ModManagementStyle.label(updateString, 18, ModManagementStyle.muted)).growX().minWidth(0f).row()
+        }
+        add(com.unciv.ui.images.ImageGetter.getWhiteDot().apply { color = ModManagementStyle.line })
+            .height(1f).pad(4f, 0f, 16f, 0f).row()
+        add(ModManagementStyle.label("About this mod", 22)).growX().minWidth(0f).row()
+        add(description).growX().minWidth(0f).padBottom(16f).row()
+
         if (repoUrl.isNotEmpty()) {
-            val githubButton = "Open Github page".toTextButton()
-            githubButton.onClick {
-                Gdx.net.openURI(repoUrl)
-            }
+            val githubButton = ModManagementStyle.button("Open Github page")
+            githubButton.onClick { Gdx.net.openURI(repoUrl) }
             githubButton.onRightClick {
                 Gdx.app.clipboard.contents = repoUrl
                 ToastPopup("Link copied to clipboard", stage)
             }
-            add(githubButton).row()
-        }
-
-        // display "updated" date
-        if (updatedAt.isNotEmpty()) {
-            val date = updatedAt.parseDate()
-            val updateString = "{Updated}: " + date.formatDate()
-            add(updateString.toLabel()).row()
+            add(githubButton).growX().minWidth(0f).minHeight(58f).row()
         }
     }
 
@@ -130,13 +137,16 @@ internal class ModInfoAndActionPane : Table() {
 
     fun addVisualCheckBox(startsOutChecked: Boolean = false, changeAction: ((Boolean)->Unit)? = null) {
         if (enableVisualCheckBox)
-            add("Permanent audiovisual mod".toCheckBox(startsOutChecked, changeAction)).row()
+            add("Permanent audiovisual mod".toCheckBox(startsOutChecked, changeAction).apply {
+                label.wrap = true
+                labelCell.minWidth(0f).growX()
+            }).growX().minWidth(0f).minHeight(58f).row()
     }
 
     fun addUpdateModButton(modInfo: ModUIData): TextButton? {
         if (!modInfo.hasUpdate) return null
-        val updateModTextbutton = "Update [${cleanModName(modInfo.name)}]".toTextButton()
-        add(updateModTextbutton).row()
+        val updateModTextbutton = ModManagementStyle.button("Update mod", primary = true)
+        add(updateModTextbutton).growX().minWidth(0f).minHeight(58f).row()
         return updateModTextbutton
     }
 
@@ -187,10 +197,11 @@ internal class ModInfoAndActionPane : Table() {
     private fun setTextureAsPreview(texture: Texture, modName: String) {
         val image = Image(texture)
         if (modName != currentRepoName) return // user has selected another mod in the meantime
+        imageHolder.clear()
         val cell = imageHolder.add(image)
         val largestImageSize = max(texture.width, texture.height)
-        if (largestImageSize > ModManagementScreen.maxAllowedPreviewImageSize) {
-            val resizeRatio = ModManagementScreen.maxAllowedPreviewImageSize / largestImageSize
+        if (largestImageSize > 64f) {
+            val resizeRatio = 64f / largestImageSize
             cell.size(texture.width * resizeRatio, texture.height * resizeRatio)
         }
     }

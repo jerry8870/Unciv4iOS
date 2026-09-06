@@ -25,8 +25,10 @@ class OptionsPopup(
     val game = screen.game
     val settings = screen.game.settings
     val tabs: TabbedPager
+    // Pager indices follow the visible tabs, not the full enum order.
+    private val visiblePages = OptionsPopupPages.entries.filter { it.visible(withDebug) }
     private val pageIndex = HashMap<OptionsPopupPages, OptionsPopupTab>()
-    override val activePage get() = OptionsPopupPages[tabs.activePage]
+    override val activePage get() = visiblePages[tabs.activePage]
     override val rightWidgetMinWidth: Float
     internal val tabMinWidth: Float
 
@@ -60,8 +62,7 @@ class OptionsPopup(
         )
         add(tabs).pad(0f).grow().row()
 
-        for (page in OptionsPopupPages.entries) {
-            if (!page.visible(withDebug)) continue
+        for (page in visiblePages) {
             val content = page.getContent(this)
             tabs.addPage(page.label, content, page.getIcon(settings.language), 24f)
             pageIndex[page] = content
@@ -86,7 +87,8 @@ class OptionsPopup(
         super.setVisible(visible)
         if (!visible) return
         if (tabs.activePage >= 0) return
-        pageIndex[selectPage]?.subSelect(subSelect)
-        tabs.selectPage(selectPage.ordinal)
+        val targetPage = if (selectPage in pageIndex) selectPage else defaultPage
+        pageIndex[targetPage]?.subSelect(subSelect)
+        tabs.selectPage(visiblePages.indexOf(targetPage))
     }
 }

@@ -1,33 +1,15 @@
 package com.unciv.ui.screens.modmanager
 
-import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.scenes.scene2d.Touchable
-import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.unciv.Constants
 import com.unciv.models.metadata.ModCategories
-import com.unciv.models.translations.tr
-import com.unciv.ui.components.widgets.ExpanderTab
-import com.unciv.ui.components.widgets.UncivTextField
-import com.unciv.ui.components.UncivTooltip.Companion.addTooltip
-import com.unciv.ui.components.extensions.surroundWithCircle
 import com.unciv.ui.components.extensions.toLabel
 import com.unciv.ui.components.fonts.Fonts
-import com.unciv.ui.components.input.KeyCharAndCode
-import com.unciv.ui.components.input.keyShortcuts
-import com.unciv.ui.components.input.onActivation
 import com.unciv.ui.components.input.onChange
-import com.unciv.ui.images.ImageGetter
-import com.unciv.ui.screens.basescreen.BaseScreen
 import com.unciv.ui.components.widgets.TranslatedSelectBox
+import com.unciv.ui.components.widgets.UncivTextField
+import com.unciv.ui.popups.Popup
 import kotlin.math.sign
 
-/**
- * Helper class for Mod Manager - filtering and sorting.
- *
- * This isn't a UI Widget, but offers one: [expander] can be used to offer filtering and sorting options.
- * It holds the variables [sortInstalled] and [sortOnline] for the [modManagementScreen] and knows
- * how to sort collections of [ModUIData] by providing comparators.
- */
+/** Filtering and sorting shared by the two Mod tabs. */
 internal class ModManagementOptions(private val modManagementScreen: ModManagementScreen) {
     companion object {
         val sortByName = Comparator { mod1, mod2: ModUIData -> mod1.name.compareTo(mod2.name, true) }
@@ -75,10 +57,10 @@ internal class ModManagementOptions(private val modManagementScreen: ModManageme
     )
 
     fun getFilter(): Filter {
-        return Filter(textField.text, category.topic)
+        return Filter(searchField.text, category.topic)
     }
 
-    private val textField = UncivTextField("Enter search text")
+    val searchField = UncivTextField("Search mods")
 
     var category = ModCategories.default()
 
@@ -89,13 +71,7 @@ internal class ModManagementOptions(private val modManagementScreen: ModManageme
     private val sortInstalledSelect: TranslatedSelectBox
     private val sortOnlineSelect: TranslatedSelectBox
 
-    var expanderChangeEvent: (()->Unit)? = null
-    val expander: ExpanderTab
-
     init {
-        val searchIcon = ImageGetter.getImage("OtherIcons/Search")
-            .surroundWithCircle(50f, color = Color.CLEAR)
-
         sortInstalledSelect = TranslatedSelectBox(
             SortType.entries.filter { sort -> sort != SortType.Stars }.map { sort -> sort.label },
             sortInstalled.label
@@ -124,61 +100,21 @@ internal class ModManagementOptions(private val modManagementScreen: ModManageme
             modManagementScreen.refreshOnlineModTable()
         }
 
-        expander = ExpanderTab(
-            "Sort and Filter",
-            fontSize = Constants.defaultFontSize,
-            startsOutOpened = false,
-            defaultPad = 2.5f,
-            headerPad = 15f,
-            expanderWidth = 360f,
-            onChange = { expanderChangeEvent?.invoke() }
-        ) {
-            it.background = BaseScreen.skinStrings.getUiBackground(
-                "ModManagementOptions/ExpanderTab",
-                tintColor = Color(0x203050ff)
-            )
-            it.pad(7.5f)
-            it.add(Table().apply {
-                add("Filter:".toLabel()).left()
-                add(textField).pad(0f, 5f, 0f, 5f).growX()
-                add(searchIcon).right()
-            }).colspan(2).growX().padBottom(7.5f).row()
-            it.add("Category:".toLabel()).left()
-            it.add(categorySelect).right().padBottom(7.5f).row()
-            it.add("Sort Current:".toLabel()).left()
-            it.add(sortInstalledSelect).right().padBottom(7.5f).row()
-            it.add("Sort Downloadable:".toLabel()).left()
-            it.add(sortOnlineSelect).right().row()
-        }
-
-        searchIcon.touchable = Touchable.enabled
-        searchIcon.onActivation {
-            if (expander.isOpen) {
-                modManagementScreen.refreshInstalledModTable()
-                modManagementScreen.refreshOnlineModTable()
-            } else {
-                modManagementScreen.stage.keyboardFocus = textField
-            }
-            expander.toggle()
-        }
-        searchIcon.keyShortcuts.add(KeyCharAndCode.RETURN)
-        searchIcon.addTooltip(KeyCharAndCode.RETURN, 18f)
     }
 
-    fun getInstalledHeader() = installedHeaderText.tr() + " " + sortInstalled.symbols
-    fun getOnlineHeader() = onlineHeaderText.tr() + " " + sortOnline.symbols
-
-    fun installedHeaderClicked() {
-        do {
-            sortInstalled = sortInstalled.next()
-        } while (sortInstalled == SortType.Stars)
-        sortInstalledSelect.selected = TranslatedSelectBox.TranslatedString(sortInstalled.label)
-        modManagementScreen.refreshInstalledModTable()
-    }
-
-    fun onlineHeaderClicked() {
-        sortOnline = sortOnline.next()
-        sortOnlineSelect.selected = TranslatedSelectBox.TranslatedString(sortOnline.label)
-        modManagementScreen.refreshOnlineModTable()
+    fun openPopup() {
+        val popup = Popup(modManagementScreen)
+        val width = (modManagementScreen.stage.width - 80f).coerceAtMost(540f)
+        popup.add("Sort and Filter".toLabel(fontSize = 24)).padBottom(16f).row()
+        for ((label, select) in listOf(
+            "Category:" to categorySelect,
+            "Sort Current:" to sortInstalledSelect,
+            "Sort Downloadable:" to sortOnlineSelect
+        )) {
+            popup.add(ModManagementStyle.label(label, 20)).width(width).left().padBottom(6f).row()
+            popup.add(select).width(width).minHeight(56f).padBottom(16f).row()
+        }
+        popup.addCloseButton()
+        popup.open()
     }
 }
