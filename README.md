@@ -6,7 +6,7 @@
 > Upstream Unciv supports Android, Desktop and Web, but not iOS.
 > This repository exists to make Unciv run natively on iPhone and iPad.
 > Game content and the modding ecosystem stay in sync with upstream, and the license is the same MPL 2.0.
-> The iOS port source is not published yet - it will be released here under MPL 2.0 once the port is stable.
+> The iOS port source is published here under MPL 2.0.
 
 [![TestFlight](https://img.shields.io/badge/TestFlight-Join%20Beta-blue?logo=apple)](https://testflight.apple.com/join/XSgMMQjt)
 ![Platform](https://img.shields.io/badge/platform-iOS-blue?logo=apple)
@@ -35,7 +35,7 @@ If you want a small, fast, moddable, FOSS, in-depth 4X that can still run on a p
 
 The quickest way to try it: **[join the public TestFlight beta](https://testflight.apple.com/join/XSgMMQjt)**
 
-This is an early, unstable build of the iOS port. Expect bugs and missing features -
+This is a beta build of the iOS port. Expect some bugs and missing features -
 see [What's the roadmap?](#whats-the-roadmap) for what works today.
 
 ### App Store
@@ -44,7 +44,9 @@ Not available yet - the App Store release is planned once the port is stable.
 
 ### Build from source
 
-Not available yet: the `ios/` module will be published here alongside the source release.
+The `ios/` module is published here under MPL 2.0 - see
+[ios/README.md](ios/README.md) for the RoboVM build, simulator and signing
+requirements.
 
 ## What's the roadmap?
 
@@ -66,13 +68,22 @@ server you enter in the game. See [how multiplayer works upstream](https://yairm
 
 Note: Dropbox-backed multiplayer has been removed upstream and is not supported on iOS.
 
+**Mod management (complete)**
+
+In-app Mod management is now available: the Mods screen lists the GitHub
+catalog, and Mods can be downloaded by URL, installed, updated and removed
+from inside the app. Missing Mods can also be downloaded when loading a save.
+Downloads run through an NSURLSession-backed streaming engine under Ktor - see
+[ios/README.md](ios/README.md#platform-capability-boundary) for the capability
+boundary.
+
 After that, we follow upstream:
 
 * G&K mechanics - see [upstream #4697](https://www.github.com/yairm210/Unciv/issues/4697)
 * BNW mechanics - trade routes, world congress, etc.
 
 Some things are still missing on iOS: multiplayer chat, push notifications,
-background polling, in-app mod management, and HTTP/LAN multiplayer servers.
+background polling, and HTTP/LAN multiplayer servers.
 
 ## Contributing
 
