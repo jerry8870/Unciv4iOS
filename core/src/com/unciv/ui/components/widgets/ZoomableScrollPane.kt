@@ -134,6 +134,19 @@ open class ZoomableScrollPane(
         )
     }
 
+    /** Change the displayed rectangle without moving the world point at its center. */
+    fun resizeViewport(bounds: Rectangle) {
+        validate()
+        val anchor = getViewport().getCenter(Vector2())
+        setBounds(bounds.x, bounds.y, bounds.width / scaleX, bounds.height / scaleY)
+        validate()
+        scrollX = anchor.x
+        scrollY = maxY - anchor.y
+        updateVisualScroll()
+        updateCulling()
+        onViewportChanged()
+    }
+
     open fun zoom(zoomScale: Float) {
         val newZoom = zoomScale.coerceIn(minZoom, maxZoom)
         val oldZoomX = scaleX

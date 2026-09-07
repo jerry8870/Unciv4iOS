@@ -80,8 +80,8 @@ open class TabbedPager(
     capacity: Int = 4
 ) : Table() {
 
-    private val dimW: DimensionMeasurement
-    private val dimH: DimensionMeasurement
+    private var dimW: DimensionMeasurement
+    private var dimH: DimensionMeasurement
 
     private val pages = ArrayList<PageState>(capacity)
 
@@ -337,6 +337,14 @@ open class TabbedPager(
     //region Widget interface
 
     // The following are part of the Widget interface and serve dynamic sizing
+    /** Resize the containing window without deactivating pages or replacing their inputs. */
+    fun resizePageArea(width: Float, height: Float) {
+        dimW = DimensionMeasurement.from(width, width, width)
+        val contentHeight = (height - headerHeight).coerceAtLeast(0f)
+        dimH = DimensionMeasurement.from(contentHeight, contentHeight, contentHeight)
+        invalidateHierarchy()
+    }
+
     override fun getPrefWidth() = dimW.pref
     fun setPrefWidth(width: Float) {
         if (dimW.growMax && width > dimW.max) dimW.max = width

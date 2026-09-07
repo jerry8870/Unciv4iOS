@@ -154,7 +154,7 @@ grep -x 'overview' "$UNCIV_UI_ACK_FILE"
 ```
 
 Supported actions are `tap`, `typeText`, `doubleTap`, `press`, `drag`, `wait`,
-`dump`, `landscapeLeft`, and `landscapeRight`. `typeText` sends the remaining
+`dump`, `portrait`, `landscapeLeft`, and `landscapeRight`. `typeText` sends the remaining
 comma-separated text to the current first responder. Append `quit` on its own
 line for a clean shutdown. The default persistent-session timeout is four
 hours; override it with the `UNCIV_UI_LOOP_TIMEOUT` test environment variable.

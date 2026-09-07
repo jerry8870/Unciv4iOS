@@ -2,16 +2,18 @@
 
 This module ports the Unciv `4.21.14` compatibility baseline to iPhone and iPad
 with MobiVM `2.3.26` and libGDX `1.14.2`. The universal application is simulator
-first, full-screen, single-scene, and fixed to both landscape orientations. On
-iPad it does not support portrait, Split View, Stage Manager resizing, multiple
-windows, or Mac Catalyst. Its
+first, full-screen and single-scene. Display settings offer Landscape (default),
+Portrait and Auto, plus an independent “Extend to screen edges” preference
+(default off). Map content can extend beyond safe insets while controls remain
+inside them. Split View, Stage Manager resizing, multiple windows and Mac Catalyst
+are outside the current scope. Its
 bundle identifier is `com.aishuati.unciv`, display name is `Unciv4iOS`, bundle
 build is `1`, and deployment target is iOS `15.0`.
 
 The iOS 26.5 runtime warns that `UIRequiresFullScreen` will eventually be
 ignored and that all orientations will eventually be required. This build
-intentionally retains `UIRequiresFullScreen=true` for its fixed full-screen
-landscape iPad scope. Supporting a future resizable-window model is a separate
+intentionally retains `UIRequiresFullScreen=true` for its full-screen
+iPad scope. Supporting a future resizable-window model is a separate
 migration and is not implied by this port.
 
 The bundle identifier differs from earlier POC builds, so iOS treats this as a

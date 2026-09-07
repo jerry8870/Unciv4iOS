@@ -74,6 +74,16 @@ class OptionsPopup(
         center(screen.stage)
     }
 
+    override fun onVisibleAreaChanged(visibleArea: com.badlogic.gdx.math.Rectangle) {
+        if (com.badlogic.gdx.Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.iOS) {
+            tabs.resizePageArea(
+                if (stageToShowOn.height > stageToShowOn.width) stageToShowOn.width - 10f else stageToShowOn.width * 0.8f,
+                visibleArea.height * 0.8f
+            )
+        }
+        super.onVisibleAreaChanged(visibleArea)
+    }
+
     override fun close() {
         game.musicController.onChange(null)
         center(stageToShowOn)

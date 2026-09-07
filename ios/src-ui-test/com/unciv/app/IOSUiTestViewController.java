@@ -4,7 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplication;
 import com.badlogic.gdx.backends.iosrobovm.IOSGraphics;
-import com.badlogic.gdx.backends.iosrobovm.IOSUIViewController;
 import com.unciv.UncivGame;
 import com.unciv.ui.audio.MusicTrackController;
 import org.robovm.apple.coregraphics.CGRect;
@@ -15,7 +14,7 @@ import org.robovm.apple.uikit.UIColor;
 import org.robovm.apple.uikit.UILabel;
 
 /** Exposes non-interactive accessibility markers in the explicit UI-test build only. */
-final class IOSUiTestViewController extends IOSUIViewController {
+final class IOSUiTestViewController extends UncivIOSViewController {
     static final String READY_IDENTIFIER = "unciv.ui-test.ready";
     static final String SCREEN_IDENTIFIER_PREFIX = "unciv.ui-test.screen.";
     static final String HOST_VISIBLE_IDENTIFIER = "unciv.ui-test.host.visible";

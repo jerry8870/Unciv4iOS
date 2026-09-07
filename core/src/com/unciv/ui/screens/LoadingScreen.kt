@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.unciv.ui.images.ImageWithCustomSize
 import com.unciv.ui.popups.popups
 import com.unciv.ui.screens.basescreen.BaseScreen
+import com.unciv.ui.screens.basescreen.SafeAreaViewport
 import com.unciv.ui.popups.LoadingPopup
 
 /** A loading screen that creates a screenshot of the current screen and adds a "Loading..." popup on top of that */
@@ -29,8 +30,9 @@ class LoadingScreen(
                 -screenshot.height
             )
         )
-        image.width = stage.width
-        image.height = stage.height
+        // The capture includes the viewport's full drawing area, including unsafe screen edges.
+        val bounds = (stage.viewport as SafeAreaViewport).drawingBounds
+        image.setBounds(bounds.x, bounds.y, bounds.width, bounds.height)
         stage.addActor(image)
         stage.addAction(Actions.sequence(
             Actions.delay(1000f),

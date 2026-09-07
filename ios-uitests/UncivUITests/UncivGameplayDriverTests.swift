@@ -94,6 +94,9 @@ final class UncivGameplayDriverTests: XCTestCase {
         case "dump":
             XCTAssertEqual(parts.count, 1, "dump expects no arguments")
             print("UNCIV_UI_TREE=\(application.debugDescription)")
+        case "portrait":
+            XCTAssertEqual(parts.count, 1, "portrait expects no arguments")
+            XCUIDevice.shared.orientation = .portrait
         case "landscapeLeft":
             XCTAssertEqual(parts.count, 1, "landscapeLeft expects no arguments")
             XCUIDevice.shared.orientation = .landscapeLeft

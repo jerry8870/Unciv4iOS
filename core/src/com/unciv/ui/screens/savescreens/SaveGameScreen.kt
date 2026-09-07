@@ -43,6 +43,12 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
     private val copyJsonButton = "Copy to clipboard".toTextButton()
     private val saveToCustomLocationButton = saveToCustomText.toTextButton()
 
+    private val screenTable = Table()
+    private val body = Table()
+    private lateinit var savesPanel: Table
+    private lateinit var editorSurface: Table
+    private val displayEvents = com.unciv.logic.event.EventBus.EventReceiver()
+
     companion object : Helpers {
         const val nameFieldLabelText = "Saved game name"
         const val saveButtonText = "Save game"
@@ -75,7 +81,13 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
         rightSideButton.keyShortcuts.add(KeyCharAndCode.RETURN)
         rightSideButton.enable()
 
-        initLandscapeLayout()
+        initResponsiveLayout()
+        if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.iOS) {
+            displayEvents.receive(com.unciv.ui.screens.basescreen.UncivStage.VisibleAreaChanged::class) {
+                screenTable.setBounds(0f, it.visibleArea.y, stage.width, it.visibleArea.height)
+                layoutPanels(it.visibleArea.height)
+            }
+        }
     }
 
     private fun initGameNameField() {
@@ -127,7 +139,7 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
         }
     }
 
-    private fun initLandscapeLayout() {
+    private fun initResponsiveLayout() {
         topTable.clear()
         bottomTable.clear()
         rightSideButton.remove()
@@ -150,8 +162,9 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
         closeButton.labelCell.minWidth(0f)
         showAutosavesCheckbox.labelCell.minWidth(0f)
 
-        val screenTable = Table().apply {
-            setFillParent(true)
+        screenTable.apply {
+            setFillParent(Gdx.app.type != com.badlogic.gdx.Application.ApplicationType.iOS)
+            setSize(stage.width, stage.height)
             background = skinStrings.getUiBackground(
                 "SaveGameScreen/Background",
                 tintColor = skinStrings.skinConfig.clearColor,
@@ -181,7 +194,7 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
             top()
             defaults().growX()
         }
-        val savesPanel = Table().apply {
+        savesPanel = Table().apply {
             background = skinStrings.getUiBackground(
                 "SaveGameScreen/SavesPanel",
                 skinStrings.roundedEdgeRectangleSmallShape,
@@ -224,7 +237,7 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
             setScrollingDisabled(true, false)
             setOverscroll(false, false)
         }
-        val editorSurface = Table().apply {
+        editorSurface = Table().apply {
             background = skinStrings.getUiBackground(
                 "SaveGameScreen/EditorPanel",
                 skinStrings.roundedEdgeRectangleSmallShape,
@@ -233,15 +246,36 @@ class SaveGameScreen(private val gameInfo: GameInfo) :
             add(editorScroll).grow().minWidth(0f).minHeight(0f)
         }
 
-        val bodyContentWidth = stage.width - 30f
-        val editorWidth = (stage.width * 0.45f).coerceAtMost(bodyContentWidth * 0.50f)
-        val savesWidth = bodyContentWidth - editorWidth
-        val body = Table().apply {
-            add(savesPanel).grow().width(savesWidth).minWidth(0f)
-            add(editorSurface).grow().width(editorWidth).minWidth(0f).padLeft(10f)
-        }
+        layoutPanels(stage.height)
         screenTable.add(body).grow().minWidth(0f).minHeight(0f).pad(0f, 10f, 10f, 10f)
         stage.addActor(screenTable)
+    }
+
+    private fun layoutPanels(visibleHeight: Float) {
+        val focus = stage.keyboardFocus
+        body.clearChildren(false)
+        if (isPortrait()) {
+            body.add(savesPanel).growX().height((visibleHeight - 80f).coerceAtLeast(0f) * 0.35f).minWidth(0f).row()
+            body.add(editorSurface).grow().minWidth(0f).minHeight(0f).padTop(10f)
+        } else {
+            val contentWidth = stage.width - 30f
+            body.add(savesPanel).grow().width(contentWidth * 0.55f).minWidth(0f)
+            body.add(editorSurface).grow().width(contentWidth * 0.45f).minWidth(0f).padLeft(10f)
+        }
+        stage.keyboardFocus = focus
+    }
+
+    override fun resize(width: Int, height: Int) {
+        val changed = hasSafeAreaChanged(width, height)
+        super.resize(width, height)
+        if (!changed) return
+        screenTable.setBounds(0f, 0f, stage.width, stage.height)
+        layoutPanels(stage.height)
+    }
+
+    override fun dispose() {
+        displayEvents.stopReceiving()
+        super.dispose()
     }
 
     private fun prepareResponsiveButton(button: TextButton) {

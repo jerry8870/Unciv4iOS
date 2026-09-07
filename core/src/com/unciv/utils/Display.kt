@@ -40,6 +40,7 @@ data class SafeArea(
 )
 
 interface PlatformDisplay {
+    fun applySettings(settings: GameSettings) {}
     fun setScreenMode(id: Int, settings: GameSettings) {}
     fun getScreenModes(): Map<Int, ScreenMode> = hashMapOf()
 
@@ -55,10 +56,13 @@ interface PlatformDisplay {
     fun setSystemUiVisibility(hide: Boolean) {}
 
     fun getSafeInsets() = SafeInsets()
+    fun isEdgeToEdgeEnabled(): Boolean = false
 }
 
 object Display {
     lateinit var platform: PlatformDisplay
+
+    fun applySettings(settings: GameSettings) = platform.applySettings(settings)
 
     fun hasOrientation() = platform.hasOrientation()
     fun setOrientation(orientation: ScreenOrientation) { platform.setOrientation(orientation) }
@@ -74,5 +78,7 @@ object Display {
     fun hasSystemUiVisibility() = platform.hasSystemUiVisibility()
     fun setSystemUiVisibility(hide: Boolean) = platform.setSystemUiVisibility(hide)
 
-    fun getSafeArea(width: Int, height: Int) = platform.getSafeInsets().applyTo(width, height)
+    fun getSafeInsets() = platform.getSafeInsets()
+    fun isEdgeToEdgeEnabled() = platform.isEdgeToEdgeEnabled()
+    fun getSafeArea(width: Int, height: Int) = getSafeInsets().applyTo(width, height)
 }

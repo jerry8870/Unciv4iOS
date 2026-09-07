@@ -7,6 +7,7 @@ import com.unciv.logic.files.cloud.CloudSyncTrigger
 import com.unciv.logic.multiplayer.storage.MultiplayerV1Transport
 import com.unciv.utils.MultiplayerBackgroundTask
 import com.unciv.utils.PlatformCapabilities
+import com.unciv.utils.Display
 import org.robovm.apple.foundation.NSBundle
 import java.util.Locale
 
@@ -65,8 +66,14 @@ class IOSGame @JvmOverloads constructor(
 
     override fun resume() {
         super.resume()
+        (Display.platform as IOSDisplay).restoreOrientation()
         cloudSaveService?.requestSync(CloudSyncTrigger.Foreground)
         runtimeFeatures.onForeground()
+    }
+
+    override fun render() {
+        (Display.platform as IOSDisplay).updateVisibleArea((screen as? com.unciv.ui.screens.basescreen.BaseScreen)?.stage)
+        super.render()
     }
 
     override fun dispose() {

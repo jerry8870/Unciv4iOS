@@ -128,6 +128,7 @@ open class UncivGame(val isConsoleMode: Boolean = false) : Game(), PlatformSpeci
         settings = files.getGeneralSettings() // needed for the screen
         if (settings.multiplayer.migratePasswordsToSecureStorage()) settings.save()
         Display.setScreenMode(settings.screenMode, settings)
+        Display.applySettings(settings)
         setAsRootScreen(GameStartScreen())  // NOT dependent on any atlas or skin
         InputDisabling.disableInput() // We just set the game start screen, avoid ANRs until we actually load the main menu
 

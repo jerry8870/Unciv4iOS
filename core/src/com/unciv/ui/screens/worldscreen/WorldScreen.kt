@@ -1020,6 +1020,20 @@ class WorldScreen(
     private var resizeDeferTimer: Timer? = null
 
     override fun resize(width: Int, height: Int) {
+        if (Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.iOS) {
+            if (!hasSafeAreaChanged(width, height)) return
+            super.resize(width, height)
+            mapHolder.resizeViewport((stage.viewport as com.unciv.ui.screens.basescreen.SafeAreaViewport).drawingBounds)
+            mapHolder.reloadMaxZoom()
+            mapHolder.zoom(mapHolder.scaleX)
+            notificationsScroll.width = stage.width / 2
+            minimapWrapper.x = stage.width - minimapWrapper.width
+            battleTable.width = stage.width / 3
+            battleTable.x = stage.width / 3
+            bottomUnitTable.shouldUpdate = true
+            shouldUpdate = true
+            return
+        }
         resizeDeferTimer?.cancel()
         if (resizeDeferTimer == null && !hasSafeAreaChanged(width, height)) return
         resizeDeferTimer = timer("Resize", daemon = true, 500L, Long.MAX_VALUE) {

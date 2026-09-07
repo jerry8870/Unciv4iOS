@@ -14,7 +14,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
-import com.badlogic.gdx.utils.viewport.ExtendViewport
 import com.unciv.ui.screens.GameStartScreen
 import com.unciv.UncivGame
 import com.unciv.models.TutorialTrigger
@@ -39,7 +38,6 @@ import com.unciv.ui.screens.civilopediascreen.CivilopediaScreen
 import com.unciv.ui.screens.mainmenuscreen.MainMenuScreen
 import com.unciv.ui.screens.worldscreen.WorldScreen
 import com.unciv.utils.Display
-import com.unciv.utils.SafeArea
 
 // Both `this is CrashScreen` and `this::createPopupBasedDispatcherVetoer` are flagged.
 // First - not a leak; second - passes out a pure function
@@ -49,7 +47,11 @@ abstract class BaseScreen : Screen {
 
     val game: UncivGame = UncivGame.Current
     val stage: Stage
-    private var safeArea: SafeArea
+    private var displayWidth = Gdx.graphics.width
+    private var displayHeight = Gdx.graphics.height
+    private var safeInsets = Display.getSafeInsets()
+    private var edgeToEdge = Display.isEdgeToEdgeEnabled()
+    private var recreateAfterPopup = false
 
     protected val tutorialController by lazy { TutorialController(this) }
 
@@ -64,8 +66,7 @@ abstract class BaseScreen : Screen {
         val height = screenSize.virtualHeight
 
         /** The ExtendViewport sets the _minimum_(!) world size - the actual world size will be larger, fitted to screen/window aspect ratio. */
-        stage = UncivStage(ExtendViewport(height, height))
-        safeArea = Display.getSafeArea(Gdx.graphics.width, Gdx.graphics.height)
+        stage = UncivStage(SafeAreaViewport(height))
         applySafeArea()
 
         if (enableSceneDebug.active && this !is CrashScreen && this !is GameStartScreen)
@@ -90,6 +91,11 @@ abstract class BaseScreen : Screen {
     override fun show() {}
 
     override fun render(delta: Float) {
+        if (recreateAfterPopup && activePopup == null && this is RecreateOnResize) {
+            recreateAfterPopup = false
+            game.replaceCurrentScreen { recreate() }
+            return
+        }
         Gdx.gl.glClearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
 
@@ -100,26 +106,28 @@ abstract class BaseScreen : Screen {
     }
 
     override fun resize(width: Int, height: Int) {
-        val resizedSafeArea = Display.getSafeArea(width, height)
-        if (this !is RecreateOnResize) {
-            safeArea = resizedSafeArea
+        if (width <= 0 || height <= 0) return
+        val changed = hasSafeAreaChanged(width, height)
+        val preservePopup = Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.iOS && activePopup != null
+        if (this !is RecreateOnResize || preservePopup) {
+            if (changed && this is RecreateOnResize) recreateAfterPopup = true
+            displayWidth = width
+            displayHeight = height
+            safeInsets = Display.getSafeInsets()
+            edgeToEdge = Display.isEdgeToEdgeEnabled()
             applySafeArea()
-        } else if (resizedSafeArea != safeArea) {
+        } else if (changed) {
             game.replaceCurrentScreen { recreate() }
         }
     }
 
     private fun applySafeArea() {
-        stage.viewport.update(safeArea.width, safeArea.height, true)
-        stage.viewport.setScreenPosition(
-            stage.viewport.screenX + safeArea.x,
-            stage.viewport.screenY + safeArea.y
-        )
-        stage.viewport.apply(true)
+        (stage.viewport as SafeAreaViewport).updateDisplay(displayWidth, displayHeight, safeInsets, edgeToEdge)
     }
 
     protected fun hasSafeAreaChanged(width: Int, height: Int) =
-        Display.getSafeArea(width, height) != safeArea
+        width != displayWidth || height != displayHeight || Display.getSafeInsets() != safeInsets ||
+            Display.isEdgeToEdgeEnabled() != edgeToEdge
 
     override fun pause() {}
 

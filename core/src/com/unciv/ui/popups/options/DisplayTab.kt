@@ -31,6 +31,15 @@ internal class DisplayTab(
 
         addScreenSizeSelectBox()
         addScreenOrientationSelectBox()
+        if (Gdx.app.type == Application.ApplicationType.iOS) {
+            addCheckbox("Extend to screen edges", settings::iosUseDisplayCutout) {
+                Display.setCutout(it)
+                settings.save()
+            }
+            add("Maps and backgrounds extend to the screen edges. Controls stay in the safe area.".tr()
+                .let { WrappableLabel(it, optionsPopup.tabs.prefWidth, fontSize = 14).apply { wrap = true } })
+                .colspan(2).growX().row()
+        }
         addScreenModeSelectBox()
 
 
@@ -141,7 +150,8 @@ internal class DisplayTab(
         if (!Display.hasOrientation()) return
         addSelectBox("Screen orientation", settings::displayOrientation, ScreenOrientation.entries) { orientation, _ ->
             Display.setOrientation(orientation)
-            reloadWorldAndOptions()
+            if (Gdx.app.type == Application.ApplicationType.iOS) settings.save()
+            else reloadWorldAndOptions()
         }
     }
 

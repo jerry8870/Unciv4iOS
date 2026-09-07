@@ -110,7 +110,8 @@ class WorldMapHolder(
         addClickListener()
 
         actor = tileGroupMap
-        setSize(worldScreen.stage.width, worldScreen.stage.height)
+        val bounds = (worldScreen.stage.viewport as com.unciv.ui.screens.basescreen.SafeAreaViewport).drawingBounds
+        setBounds(bounds.x, bounds.y, bounds.width / scaleX, bounds.height / scaleY)
         layout() // Fit the scroll pane to the contents - otherwise, setScroll won't work!
     }
 

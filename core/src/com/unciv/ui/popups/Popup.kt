@@ -48,7 +48,7 @@ import com.unciv.ui.screens.basescreen.UncivStage
 open class Popup(
     val stageToShowOn: Stage,
     scrollable: Scrollability = Scrollability.WithoutButtons,
-    maxSizePercentage: Float = 0.9f
+    private val maxSizePercentage: Float = 0.9f
 ): Table(BaseScreen.skin) {
 
     constructor(
@@ -66,8 +66,8 @@ open class Popup(
      */
     enum class Scrollability { None, All, WithoutButtons, DevConsole }
 
-    protected val maxPopupWidth = stageToShowOn.width * maxSizePercentage
-    protected val maxPopupHeight = stageToShowOn.height * maxSizePercentage
+    protected val maxPopupWidth get() = stageToShowOn.width * maxSizePercentage
+    protected val maxPopupHeight get() = stageToShowOn.height * maxSizePercentage
 
     /** This exists to differentiate the actual popup (this table)
      *  from the 'screen blocking' part of the popup (which covers the entire screen).
@@ -205,12 +205,38 @@ open class Popup(
         pack()
         center(stageToShowOn)
         events.receive(UncivStage.VisibleAreaChanged::class) {
-            fitOrCenterContentIntoVisibleArea(it.visibleArea)
+            onVisibleAreaChanged(it.visibleArea)
         }
         centerContentIntoVisibleArea(lastKnownVisibleArea())
         if (force || !stageToShowOn.hasOpenPopups()) {
             show()
         }
+    }
+
+    protected open fun onVisibleAreaChanged(visibleArea: Rectangle) {
+        if (com.badlogic.gdx.Gdx.app.type == com.badlogic.gdx.Application.ApplicationType.iOS) {
+            val buttonsHeight = if (topTable === bottomTable) 0f else bottomTable.prefHeight
+            topTableCell.maxSize(maxPopupWidth, (visibleArea.height * maxSizePercentage - buttonsHeight).coerceAtLeast(0f))
+            innerTable.invalidateHierarchy()
+        }
+        fitOrCenterContentIntoVisibleArea(visibleArea)
+    }
+
+    override fun drawBackground(batch: com.badlogic.gdx.graphics.g2d.Batch, parentAlpha: Float, x: Float, y: Float) {
+        val bounds = (stageToShowOn.viewport as? com.unciv.ui.screens.basescreen.SafeAreaViewport)?.drawingBounds
+        if (bounds == null || (bounds.x == 0f && bounds.y == 0f && bounds.width == stageToShowOn.width && bounds.height == stageToShowOn.height)) {
+            super.drawBackground(batch, parentAlpha, x, y)
+            return
+        }
+        batch.setColor(color.r, color.g, color.b, color.a * parentAlpha)
+        background?.draw(batch, x + bounds.x, y + bounds.y, bounds.width, bounds.height)
+    }
+
+    override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
+        super.hit(x, y, touchable)?.let { return it }
+        if (!isVisible || this.touchable != Touchable.enabled) return null
+        val bounds = (stageToShowOn.viewport as? com.unciv.ui.screens.basescreen.SafeAreaViewport)?.drawingBounds
+        return if (bounds?.contains(x + this.x, y + this.y) == true) this else null
     }
 
     private fun Rectangle.isMostOfScreen() =

@@ -153,7 +153,7 @@ class BattleTable(val worldScreen: WorldScreen) : Table() {
         if (combatant is MapUnitCombatant) UnitIconGroup(combatant.unit,25f)
         else ImageGetter.getNationPortrait(combatant.getCivInfo().nation, 25f)
 
-    private val quarterScreen = worldScreen.stage.width / 4
+    private val quarterScreen get() = worldScreen.stage.width / 4
 
     private fun getModifierTable(key: String, value: Int) = Table().apply {
         val description = if (key.startsWith("vs "))

@@ -126,7 +126,8 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         val background = skinStrings.getUiBackground("MainMenuScreen/Background", tintColor = clearColor)
         backgroundStack.add(BackgroundActor(background, Align.center))
         stage.addActor(backgroundStack)
-        backgroundStack.setFillParent(true)
+        backgroundStack.setFillParent(false)
+        updateBackgroundBounds()
 
         // If we were in a mod, some of the resource images for the background map we're creating
         // will not exist unless we reset the ruleset and images
@@ -407,6 +408,16 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         ImageGetter.setNewRuleset(ruleset)
         setSkin()
         openCivilopedia(ruleset, link = link)
+    }
+
+    private fun updateBackgroundBounds() {
+        val bounds = (stage.viewport as com.unciv.ui.screens.basescreen.SafeAreaViewport).drawingBounds
+        backgroundStack.setBounds(bounds.x, bounds.y, bounds.width, bounds.height)
+    }
+
+    override fun render(delta: Float) {
+        updateBackgroundBounds()
+        super.render(delta)
     }
 
     override fun recreate(): BaseScreen {

@@ -4,6 +4,8 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplication;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplicationConfiguration;
 import com.badlogic.gdx.backends.iosrobovm.IOSAudio;
+import com.badlogic.gdx.backends.iosrobovm.IOSGraphics;
+import com.badlogic.gdx.backends.iosrobovm.IOSUIViewController;
 
 public class UncivIOSApplication extends IOSApplication {
     private final IOSRuntimeFeatures runtimeFeatures;
@@ -22,5 +24,9 @@ public class UncivIOSApplication extends IOSApplication {
         if (!configuration.useAudio) return super.createAudio(configuration);
         IOSAudio audio = runtimeFeatures.createAudio(configuration);
         return audio != null ? audio : super.createAudio(configuration);
+    }
+
+    @Override protected IOSUIViewController createUIViewController(IOSGraphics graphics) {
+        return new UncivIOSViewController(this, graphics);
     }
 }
