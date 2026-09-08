@@ -7,6 +7,7 @@ import com.unciv.models.metadata.GameSettings.PathfindingAlgorithm.AStarPathfind
 import com.unciv.testing.TestGame
 import com.unciv.testing.TestRunnerFactory
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -36,6 +37,33 @@ class NextTurnAutomationTest(private val algorithm: PathfindingAlgorithm) {
         civInfo = testGame.addCiv()
         val capital = testGame.addCity(civInfo, testGame.tileMap[0,0])
         assertTrue(capital.isCapital())
+    }
+
+    @Test
+    fun `automateUnits skips workers captured while founding a city`() {
+        val game = TestGame()
+        UncivGame.Current.settings.useAStarPathfinding = (algorithm == AStarPathfinding)
+        game.makeHexagonalMap(4)
+        game.setDifficulty("Chieftain") // Barbarians must leave newly claimed tiles before turn 60.
+        val cityState = game.addCiv(cityStateType = "Cultured") // Settles its initial tile.
+        val barbarians = game.addBarbarianCiv()
+        val settler = game.addUnit("Settler", cityState, game.tileMap[0, 0])
+        val worker = game.addUnit("Worker", cityState, game.tileMap[-2, -2])
+        val brute = game.addUnit("Brute", barbarians, game.tileMap[-1, -1])
+        // Founding the city expels the brute onto the worker's tile and captures it mid-turn.
+        for (tile in brute.currentTile.neighbors) {
+            if (tile != settler.currentTile && tile != worker.currentTile)
+                game.setTileTerrain(tile.position, "Mountain")
+        }
+
+        NextTurnAutomation.automateCivMoves(cityState, tradeAndChangeState = false)
+
+        assertEquals(1, cityState.cities.size)
+        assertTrue(settler.isDestroyed)
+        assertSame(barbarians, worker.civ)
+        assertSame(worker.currentTile, brute.currentTile)
+        assertEquals(0f, worker.currentMovement)
+        assertTrue(cityState.units.getCivUnits().none { it == worker })
     }
 
     @Test

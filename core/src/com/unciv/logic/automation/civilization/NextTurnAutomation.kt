@@ -412,6 +412,8 @@ object NextTurnAutomation {
     private fun automateUnits(civInfo: Civilization) {
         val isAtWar = civInfo.isAtWar()
         val sortedUnits = civInfo.units.getCivUnits().sortedBy { unit -> getUnitPriority(unit, isAtWar) }
+            // Recheck lazily: earlier actions can destroy units or displace enemies into our civilians.
+            .filter { it.civ == civInfo && !it.isDestroyed }
 
         val citiesRequiringManualPlacement = civInfo.getKnownCivs().filter { it.isAtWarWith(civInfo) }
             .flatMap { it.cities }
