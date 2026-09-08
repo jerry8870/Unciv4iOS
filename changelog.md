@@ -1,3 +1,23 @@
+## 4.21.18
+
+Avoid ANRs from multiple sources
+
+Avoid game load crashes for unit/tile neighbor adjacency conditionals
+
+Adds auto map size - By O-spin
+
+By Angais: 
+- Apply warmonger penalties to alliance motivation 
+- Apply city filters to spy effectiveness 
+
+By varchasgopalaswamy (new contributor!):
+- Fix bug where unplacable great people will disappear 
+- Fix movement history perspective 
+
+By SomeTroglodyte:
+- Font fallback for missing glyphs 
+- Translation generation preserves existing data for mods, can backup 
+
 ## 4.21.17
 
 Decrease initial startup time

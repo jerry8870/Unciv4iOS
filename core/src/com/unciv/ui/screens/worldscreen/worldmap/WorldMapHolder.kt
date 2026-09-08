@@ -10,9 +10,7 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.math.Interpolation
 import com.badlogic.gdx.scenes.scene2d.*
 import com.unciv.UncivGame
-import com.unciv.logic.battle.Battle
 import com.unciv.logic.battle.MapUnitCombatant
-import com.unciv.logic.battle.TargetHelper
 import com.unciv.logic.city.City
 import com.unciv.logic.map.*
 import com.unciv.logic.map.mapunit.MapUnit
@@ -219,7 +217,7 @@ class WorldMapHolder(
                     && unitsInTile.any()
                     && unitsInTile.first().civ().isAtWarWith(worldScreen.selectedGameView.civView)) {
                 // try to select the closest city to bombard this guy
-                unitTable.citySelected(previousSelectedCity.getCity())
+                unitTable.citySelected(previousSelectedCity)
             }
         }
         worldScreen.shouldUpdate = true
@@ -227,7 +225,6 @@ class WorldMapHolder(
 
     private fun onTileRightClicked(unitView: MapUnitView, tileView: TileView) {
         val unit = unitView.getUnit()
-        val tile = tileView.getTile()
         if (unitView.getTile() == tileView) return
         removeUnitActionOverlay()
         selectedTile = tileView
@@ -254,18 +251,19 @@ class WorldMapHolder(
             /** If we are in unit-swapping mode and didn't find a swap partner, we don't want to move or attack */
         } else {
             // This seems inefficient as the tileToAttack is already known - but the method also calculates tileToAttackFrom
-            val attackableTile = TargetHelper
-                    .getAttackableEnemies(unit, unit.movement.getDistanceToTiles())
-                    .firstOrNull { it.tileToAttack == tile }
+            val attackableTile = unitView
+                    .getAttackableEnemies(unit.movement.getDistanceToTiles())
+                    .firstOrNull { it.getTileToAttack() == tileView }
             if (unitView.canAttack() && attackableTile != null) {
                 /** ****** Right-click Attack ****** */
                 val attacker = MapUnitCombatant(unit)
-                if (!Battle.movePreparingAttack(attacker, attackableTile)) return
+                if (!unitView.tryMovePreparingAttack(attackableTile)) return
                 if (!SoundPlayer.play(UncivSound(attacker.getName())))
                     SoundPlayer.play(attacker.getAttackSound())
-                val (damageToDefender, damageToAttacker) = Battle.attackOrNuke(attacker, attackableTile)
-                if (attackableTile.combatant != null)
-                    worldScreen.battleAnimationDeferred(attacker, damageToAttacker, attackableTile.combatant, damageToDefender)
+                val (damageToDefender, damageToAttacker) = unitView.attackOrNuke(attackableTile)
+                val defenderCombatant = attackableTile.getCombatant()
+                if (defenderCombatant != null)
+                    worldScreen.battleAnimationDeferred(attacker, damageToAttacker, defenderCombatant.getCombatant(), damageToDefender)
                 localShouldUpdate = true
             } else if (unitView.canReach(tileView)) {
                 /** ****** Right-click Move ****** */
@@ -584,15 +582,6 @@ class WorldMapHolder(
         actor.y += actor.height
         actor.setOrigin(Align.bottom)
         unitActionOverlays.add(actor)
-    }
-
-    /** Returns true when the civ is a human player defeated in singleplayer game */
-    @Readonly
-    fun isMapRevealEnabled(civView: CivView): Boolean {
-        val viewingCiv = civView.getCiv()
-        return !viewingCiv.gameInfo.gameParameters.isOnlineMultiplayer
-            && viewingCiv.isCurrentPlayer()
-            && viewingCiv.isDefeated()
     }
 
     /** Clear all arrows to be drawn on the next update. */

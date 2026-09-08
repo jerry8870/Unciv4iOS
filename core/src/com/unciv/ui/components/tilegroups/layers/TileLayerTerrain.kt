@@ -44,7 +44,7 @@ class TileLayerTerrain(tileGroup: TileGroup, size: Float) : TileLayer(tileGroup,
 
     private fun getTileBaseImageLocations(viewingCiv: CivView?): List<String> {
 
-        val isForceVisible = tileGroup.isForceVisible
+        val isForceVisible = tileGroup.tileView.isForceVisible()
 
         if (viewingCiv == null && !isForceVisible)
             return strings.hexagonList
@@ -229,7 +229,7 @@ class TileLayerTerrain(tileGroup: TileGroup, size: Float) : TileLayer(tileGroup,
     }
 
     private fun updateTileColor(viewingCiv: CivView?) {
-        val isViewable = viewingCiv == null || isViewable(viewingCiv)
+        val isViewable = isViewable(viewingCiv)
         val tileView = tileGroup.tileView
         val colorPillagedTile = isViewable && tileView.isPillaged() && !usePillagedImprovementImage(tileView)
 

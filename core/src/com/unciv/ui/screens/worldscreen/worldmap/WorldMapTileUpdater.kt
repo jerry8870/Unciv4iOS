@@ -17,15 +17,6 @@ object WorldMapTileUpdater {
     private val WorldMapHolder.tileMapView get() = worldScreen.selectedGameView.tileMapView
 
      fun WorldMapHolder.updateTiles(civView: CivView) {
-        val viewingCiv = civView.getCiv()
-
-        if (isMapRevealEnabled(civView)) {
-            // Only needs to be done once - this is so the minimap will also be revealed
-            tileGroups.values.forEach {
-                it.tile.setExplored(viewingCiv, true)
-                it.isForceVisible = true } // So we can see all resources, regardless of tech
-        }
-
         // General update of all tiles
         for (tileGroup in tileGroups.values)
             tileGroup.update(civView)

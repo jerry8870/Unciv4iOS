@@ -105,7 +105,7 @@ class TileLayerUnitFlag(tileGroup: TileGroup, size: Float) : TileLayer(tileGroup
     }
 
     private fun fillSlots(viewingCiv: CivView?) {
-        val isViewable = viewingCiv == null || tileGroup.isForceVisible || isViewable(viewingCiv)
+        val isViewable = isViewable(viewingCiv)
 
         val isCivilianShown = isViewable
         val isMilitaryShown = isViewable

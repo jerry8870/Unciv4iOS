@@ -89,8 +89,10 @@ class Translations : RoboVMCompatibleLinkedHashMap<String, TranslationEntry>() {
         return get(text, language, activeMods)?.get(language) ?: default
     }
 
-    /** Get all languages present in `this`, used for [TranslationFileWriter] and `TranslationTests` */
-    fun getLanguages() = linkedSetOf<String>().apply {
+    /** Get all languages present in `this`, used for [TranslationFileWriter] and `TranslationTests`
+     *  * Note: No deterministic order. If a client needs that, remap to LanguageCode order or something.
+     */
+    fun getLanguages(): Set<String> = hashSetOf<String>().apply {
             for (entry in values)
                 for (languageName in entry.keys)
                     add(languageName)
@@ -478,11 +480,12 @@ fun String.getPlaceholderParameters(): List<String> {
     var depthOfBraces = 0
     var startOfCurrentParameter = -1
     stringToParse.indices.forEach { i ->
-        if (stringToParse[i] == '[') {
+        val currentChar = stringToParse[i]
+        if (currentChar == '[') {
             if (depthOfBraces == 0) startOfCurrentParameter = i+1
             depthOfBraces++
         }
-        if (stringToParse[i] == ']' && depthOfBraces > 0) {
+        if (currentChar == ']' && depthOfBraces > 0) {
             depthOfBraces--
             if (depthOfBraces == 0) parameters.add(substring(startOfCurrentParameter,i))
         }
