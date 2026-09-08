@@ -135,7 +135,16 @@ object TranslationFileWriter {
         val translationKey: String = "",
         val hashMapKey: String = "",
         val defaultValue: String = ""
-    )
+    ) {
+        override fun hashCode(): Int {
+            var result = raw.hashCode()
+            result = 31 * result + if (isTranslatable) 1231 else 1237
+            result = 31 * result + translationKey.hashCode()
+            result = 31 * result + hashMapKey.hashCode()
+            result = 31 * result + defaultValue.hashCode()
+            return result
+        }
+    }
 
     /** Result of resolving a single [ParsedLine] against one language's translations. */
     private data class LineResolution(
@@ -143,7 +152,14 @@ object TranslationFileWriter {
         val isTranslated: Boolean,
         /** Whether this line should count towards the "total translatable lines" denominator. */
         val countsTowardTotal: Boolean
-    )
+    ) {
+        override fun hashCode(): Int {
+            var result = value.hashCode()
+            result = 31 * result + if (isTranslated) 1231 else 1237
+            result = 31 * result + if (countsTowardTotal) 1231 else 1237
+            return result
+        }
+    }
 
     private val multipleNewlinesRegex = Regex("\n{4,}")
 
