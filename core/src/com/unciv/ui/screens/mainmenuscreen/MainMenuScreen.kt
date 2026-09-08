@@ -239,7 +239,7 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         val discordButton = ImageGetter.getImage("OtherIcons/Discord")
             .surroundWithCircle(buttonsSize, color = skinStrings.skinConfig.baseColor)
             .surroundWithThinCircle(Color.WHITE)
-            .onActivation { Gdx.net.openURI("https://discord.gg/bjrB4Xw") }
+            .onActivation { Gdx.net.openURI("https://discord.gg/GGGAn4SGT") }
         rightSideButtons.add(discordButton)
 
         val githubButton = ImageGetter.getImage("OtherIcons/Github")
