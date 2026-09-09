@@ -15,7 +15,7 @@ internal class AboutTab(
     init {
         renderTo(this)
         if (UncivGame.Current.voluntarySupportAvailable) {
-            add("Support Unciv".toTextButton().onClick {
+            add("Support iOS maintenance".toTextButton().onClick {
                 UncivGame.Current.showVoluntarySupport()
             }).padTop(15f).row()
         }
