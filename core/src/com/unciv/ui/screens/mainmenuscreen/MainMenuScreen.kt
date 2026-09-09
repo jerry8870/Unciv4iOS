@@ -207,15 +207,6 @@ class MainMenuScreen: BaseScreen(), RecreateOnResize {
         val table = Table().apply { defaults().pad(10f) }
         table.add(column1)
         if (!singleColumn) table.add(column2)
-        if (game.voluntarySupportAvailable) {
-            table.row()
-            val support = "Support iOS maintenance".toLabel(fontSize = 18, alignment = Align.center)
-            support.setWrap(true)
-            support.touchable = Touchable.enabled
-            support.onActivation { game.showVoluntarySupport() }
-            table.add(support).colspan(if (singleColumn) 1 else 2)
-                .width(if (singleColumn) 330f else 650f).minHeight(44f).padTop(0f)
-        }
         table.pack()
 
         val scrollPane = AutoScrollPane(table)
