@@ -443,10 +443,10 @@ private fun String.translatePlaceholders(language: String, hideIcons: Boolean): 
 
 /** No brackets of any kind, just a single word */
 @Readonly
-private fun String.translateIndividualWord(language: String, hideIcons: Boolean, hideStats: Boolean): String {
+private fun String.translateIndividualWord(language: String, hideIcons: Boolean, hideStatIcons: Boolean): String {
     if (Stats.isStats(this)) {
         val stats = Stats.parse(this)
-        return if (hideIcons) stats.toStringWithoutIcons() else stats.toString()
+        return if (hideStatIcons) stats.toStringWithoutIcons() else stats.toString()
     }
 
     val translation = UncivGame.Current.translations.getText(
@@ -456,7 +456,7 @@ private fun String.translateIndividualWord(language: String, hideIcons: Boolean,
     }
 
     val stat = Stat.safeValueOf(this)
-    if (!hideStats && stat != null) return stat.character + translation
+    if (!hideStatIcons && stat != null) return stat.character + translation
 
     if (!hideIcons && FontRulesetIcons.rulesetObjectNameToChar.containsKey(this))
         return FontRulesetIcons.rulesetObjectNameToChar[this]!! + translation

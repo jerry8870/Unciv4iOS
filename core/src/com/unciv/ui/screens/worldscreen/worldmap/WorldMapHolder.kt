@@ -10,7 +10,6 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.math.Interpolation
 import com.badlogic.gdx.scenes.scene2d.*
 import com.unciv.UncivGame
-import com.unciv.logic.battle.MapUnitCombatant
 import com.unciv.logic.city.City
 import com.unciv.logic.map.*
 import com.unciv.logic.map.mapunit.MapUnit
@@ -18,7 +17,6 @@ import com.unciv.logic.map.mapunit.movement.UnitMovement
 import com.unciv.logic.map.tile.Tile
 import com.unciv.models.Spy
 import com.unciv.models.UncivSound
-import com.unciv.view.CivView
 import com.unciv.view.GameView
 import com.unciv.view.MapUnitView
 import com.unciv.view.TileView
@@ -43,7 +41,6 @@ import com.unciv.ui.screens.worldscreen.bottombar.BattleTableHelpers.battleAnima
 import com.unciv.utils.Concurrency
 import com.unciv.utils.Log
 import com.unciv.utils.launchOnGLThread
-import yairm210.purity.annotations.Readonly
 import kotlin.math.max
 
 
@@ -256,14 +253,14 @@ class WorldMapHolder(
                     .firstOrNull { it.getTileToAttack() == tileView }
             if (unitView.canAttack() && attackableTile != null) {
                 /** ****** Right-click Attack ****** */
-                val attacker = MapUnitCombatant(unit)
+                val attackerCombatant = unitView.asCombatant()
                 if (!unitView.tryMovePreparingAttack(attackableTile)) return
-                if (!SoundPlayer.play(UncivSound(attacker.getName())))
-                    SoundPlayer.play(attacker.getAttackSound())
+                if (!SoundPlayer.play(UncivSound(attackerCombatant.getCombatantName())))
+                    SoundPlayer.play(attackerCombatant.getAttackSound())
                 val (damageToDefender, damageToAttacker) = unitView.attackOrNuke(attackableTile)
                 val defenderCombatant = attackableTile.getCombatant()
                 if (defenderCombatant != null)
-                    worldScreen.battleAnimationDeferred(attacker, damageToAttacker, defenderCombatant.getCombatant(), damageToDefender)
+                    worldScreen.battleAnimationDeferred(attackerCombatant, damageToAttacker, defenderCombatant, damageToDefender)
                 localShouldUpdate = true
             } else if (unitView.canReach(tileView)) {
                 /** ****** Right-click Move ****** */
@@ -505,7 +502,7 @@ class WorldMapHolder(
         Concurrency.run("ConnectRoad") {
            val validTile = tileView.isLand &&
                !tileView.isImpassible() &&
-                selectedUnitView.isExplored(tileView)
+                selectedUnitView.civ().hasExplored(tileView)
 
             if (validTile) {
                 val roadPath: List<Tile>? = selectedUnit.movement.getRoadPath(tile)
@@ -545,7 +542,7 @@ class WorldMapHolder(
         }
 
         for (unitView in unitList) {
-            val unitIconGroup = UnitIconGroup(unitView.getUnit(), 48f).surroundWithCircle(68f, resizeActor = false)
+            val unitIconGroup = UnitIconGroup(unitView, 48f).surroundWithCircle(68f, resizeActor = false)
             unitIconGroup.circle.color = Color.GRAY.cpy().apply { a = 0.5f }
             if (!unitView.hasMovement()) unitIconGroup.color.a = 0.66f
             val clickableCircle = ClickableCircle(68f)
@@ -592,7 +589,7 @@ class WorldMapHolder(
 
     /** Add an arrow to draw on the next update. */
     fun addArrow(fromTileView: TileView, toTileView: TileView, arrowType: MapArrowType) {
-        tileGroups[fromTileView]?.layerMisc?.addArrow(toTileView.getTile(), arrowType)
+        tileGroups[fromTileView]?.layerMisc?.addArrow(toTileView, arrowType)
     }
 
     /**

@@ -1,7 +1,5 @@
 package com.unciv.view
 
-import com.unciv.logic.battle.CityCombatant
-import com.unciv.logic.battle.MapUnitCombatant
 import com.unciv.logic.city.City
 import com.unciv.logic.civilization.Civilization
 import com.unciv.logic.map.TileMap
@@ -22,6 +20,7 @@ class TileView internal constructor(private val tile: Tile, val tileMapView: Til
                spectatorMode: Boolean = false) : View<Tile>(tile, viewer, spectatorMode) {
 
     // Navigation
+    @Deprecated("Scheduled for removal - views should unwrap() instead")
     @Readonly fun getTile(): Tile = tile
     @Readonly fun getCivView(): CivView? = tileMapView.gameView?.civView
     @Readonly fun owningCity(): ForeignCityView? {
@@ -69,18 +68,18 @@ class TileView internal constructor(private val tile: Tile, val tileMapView: Til
             .toList()
     }
     @Readonly fun getCombatant(): CombatantView? {
-        val viewer = viewer ?: return null
+        if (viewer == null) return null
         if (!isExplored()) return null
         val gameView = tileMapView.gameView ?: return null
         if (tile.isCityCenter())
-            return CombatantView(CityCombatant(tile.getCity()!!), viewer, spectatorMode, gameView)
+            return gameView.getForeignCityView(tile.getCity()!!).asCombatant()
 
         val militaryUnit = tile.militaryUnit
         if (militaryUnit != null && isVisible(militaryUnit))
-            return CombatantView(MapUnitCombatant(militaryUnit), viewer, spectatorMode, gameView)
+            return toForeignMapUnitView(militaryUnit).asCombatant()
         val civilianUnit = tile.civilianUnit
         if (civilianUnit != null && isVisible(civilianUnit))
-            return CombatantView(MapUnitCombatant(civilianUnit), viewer, spectatorMode, gameView)
+            return toForeignMapUnitView(civilianUnit).asCombatant()
         return null
     }
 
@@ -99,6 +98,12 @@ class TileView internal constructor(private val tile: Tile, val tileMapView: Til
         tile.neighbors
             .filter { viewer == null || it.isExplored(viewer) }
             .map { tileMapView.getTile(it) }
+    // Maybe we can move this to hexmath, will require extra input of map width/radius
+    @Readonly fun getNeighborClockPosition(neighbor: TileView): Int = tile.tileMap.getNeighborTileClockPosition(tile, neighbor.unwrap())
+    // This is an odd one - ideally the API should expose terrains, not...this, this is a specific performance boost 
+    //. that's not really relevant for the API
+    // We should see if we can avoid this entirely
+    @Readonly internal fun getCachedTerrainNameSet(): Set<String> = tile.cachedTerrainData.terrainNameSet
     @Readonly fun getVisibleTilesInDistance(distance: Int): Sequence<TileView> =
         tile.getTilesInDistance(distance)
             .filter { viewer == null || it.isExplored(viewer) }
